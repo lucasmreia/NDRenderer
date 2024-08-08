@@ -5,26 +5,28 @@ import { extraiNumerosStrings } from './lib/FileImporter.js';
 
 
 export default class ND_Object {
-    constructor(arquivo, ehndp){
-        this.arquivo = arquivo;
-        let geometria;
+    constructor(geometria){
+        //this.arquivo = arquivo;
+        this.geometria = geometria;
         
-        if (ehndp) {
-            geometria = readNDP(arquivo);
+        /*if (ehndp) {
+            this.geometria = readNDP(arquivo);
         } else {
-            geometria = readPol(arquivo);
-        }
+            this.geometria = readPol(arquivo);
+        }*/
 
         //Geometria do Politopo
-        this.geometriaOriginal = geometria;
+        //this.geometriaOriginal = geometria;
 
-        this.dimN = geometria.N; //Dimensao do espaço
-        this.dimK = geometria.K; 
+        //console.log(this.geometriaOriginal);
 
-        this.vertices = geometria.vertices;
+        this.dimN = this.geometria.N; //Dimensao do espaço
+        this.dimK = this.geometria.K; 
+
+        this.vertices = this.geometria.vertices;
         //this.facesKDim = geometria.faces;//Lista com K listas representado a ligação das faces de cada dimensao
 
-        this.geometry = new THREE.BufferGeometry();
+        this.geometry3D = new THREE.BufferGeometry();
 
         //this.vertices = matrix(geometria.this.vertices);
         //console.log(this.vertices);
@@ -32,11 +34,11 @@ export default class ND_Object {
 
 
 
-        const verts = geometria.vertices.map((vertice) => vertice.slice(0, 3)).flat();
+        const verts = this.geometria.vertices.map((vertice) => vertice.slice(0, 3)).flat();
 
         //Buffer com vertices da malha
         this.vertices_para_buffer = new Float32Array(verts);
-        this.geometry.setAttribute('position', new THREE.BufferAttribute(this.vertices_para_buffer, 3));
+        this.geometry3D.setAttribute('position', new THREE.BufferAttribute(this.vertices_para_buffer, 3));
         
 
         this.cor1 = new THREE.Color( 0x00ff00 );
@@ -49,6 +51,8 @@ export default class ND_Object {
             this.coordsMinMax[i] = {min:1_000, max:-1_000};
         }
 
+        //this.centrodeMassa = math.zeros(this.dimN);
+
         for (let vertice of this.vertices){
             for (let i=0; i<this.dimN; i++){
                 if (vertice[i] < this.coordsMinMax[i].min){
@@ -57,24 +61,29 @@ export default class ND_Object {
                 if (vertice[i] > this.coordsMinMax[i].max){
                     this.coordsMinMax[i].max = vertice[i];
                 }
+                //console.log(vertice[i])
+                //this.centrodeMassa[i] += vertice[i];//Mude isso depois
             }
+            //this.centrodeMassa = math.sum(this.centrodeMassa, math.matrix(vertice));
         }
+
+        //console.log(this.centrodeMassa);
 
         console.log(this.coordsMinMax);
 
         //Cor dos vertices
         //Buffer com cor de cada vertice
-        this.updateColors()
+        this.updateColors();
         /*const colorVerts = geometria.vertices
         .map((vertice) => [mapNumRange(vertice[0], -1, 1, this.cor1.r, this.cor2.r), mapNumRange(vertice[0], -1, 1, this.cor1.g, this.cor2.g), mapNumRange(vertice[0], -1, 1, this.cor1.b, this.cor2.b)])
         .flat();
         this.colorvertices_para_buffer = new Float32Array(colorVerts);
-        this.geometry.setAttribute('colorPosition', new THREE.BufferAttribute(this.colorvertices_para_buffer, 3));*/
+        this.geometry3D.setAttribute('colorPosition', new THREE.BufferAttribute(this.colorvertices_para_buffer, 3));*/
         
 
-        const ind = geometria.faces[0].flat();
-        this.geometry.indices = new Uint16Array(ind);
-        this.geometry.setIndex(new THREE.BufferAttribute(this.geometry.indices, 1));
+        const ind = this.geometria.faces[0].flat();
+        this.geometry3D.indices = new Uint16Array(ind);
+        this.geometry3D.setIndex(new THREE.BufferAttribute(this.geometry3D.indices, 1));
         
         const vertexShader = `
         varying vec4 pos;
@@ -105,12 +114,13 @@ export default class ND_Object {
 
         this.basicMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, vertexColors: true } );
 
-        this.Mesh = new THREE.LineSegments(this.geometry, this.material);
+        this.Mesh = new THREE.LineSegments(this.geometry3D, this.material);
 
         this.arquivo = undefined;
         this.linhas = undefined;
     }
 
+    /*//Descartar
     load_file(){
         const reader = new FileReader();
         //let linhas;
@@ -125,31 +135,31 @@ export default class ND_Object {
         };
         reader.readAsText(this.arquivo);
 
-    }
+    }*/
 
     updateColors(){
-        //const colorAtribute = this.geometry.getAttribute('colorPosition');
+        //const colorAtribute = this.geometry3D.getAttribute('colorPosition');
 
-        const colorVerts = this.geometriaOriginal.vertices
+        const colorVerts = this.geometria.vertices
         .map((vertice) => [mapNumRange(vertice[this.coordColorida], this.coordsMinMax[this.coordColorida].min, this.coordsMinMax[this.coordColorida].max, this.cor1.r, this.cor2.r), 
                            mapNumRange(vertice[this.coordColorida], this.coordsMinMax[this.coordColorida].min, this.coordsMinMax[this.coordColorida].max, this.cor1.g, this.cor2.g), 
                            mapNumRange(vertice[this.coordColorida], this.coordsMinMax[this.coordColorida].min, this.coordsMinMax[this.coordColorida].max, this.cor1.b, this.cor2.b)])
         .flat();
         this.colorvertices_para_buffer = new Float32Array(colorVerts);
-        this.geometry.setAttribute('colorPosition', new THREE.BufferAttribute(this.colorvertices_para_buffer, 3));
+        this.geometry3D.setAttribute('colorPosition', new THREE.BufferAttribute(this.colorvertices_para_buffer, 3));
     }
 
     updateVertices(novosVertices){
-        const positionAttribute = this.geometry.getAttribute('position');
+        const positionAttribute = this.geometry3D.getAttribute('position');
 
         for (let i=0; i<novosVertices.length; i++) {
             positionAttribute.setXYZ(i, novosVertices[i][0], novosVertices[i][1], novosVertices[i][2]);
         }
 
-        this.geometry.computeBoundingBox();
-        this.geometry.computeBoundingSphere();
+        this.geometry3D.computeBoundingBox();
+        this.geometry3D.computeBoundingSphere();
 
-        this.geometry.attributes.position.needsUpdate = true;
+        this.geometry3D.attributes.position.needsUpdate = true;
     }
 
 }
@@ -174,9 +184,9 @@ function readNDP(conteudo) {
 
     for (let i=0; i<nVrts; i++){
         verts.push(lines[2 + i].split(" ").filter((linha) => linha.length>0).map((num) => Number(num)));
+        //console.log(verts[i]);
     }
-    //console.log(verts);
-
+    //console.log(verts.slice(0, nVrts));
 
     let nArestas = Number(lines[2+nVrts]);
     //console.log(nArestas);

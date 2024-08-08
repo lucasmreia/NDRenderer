@@ -1,5 +1,6 @@
 //import * as mathjs from "mathjs";
 import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND } from "./lib/ND_Transforms.js";
+import ND_AxesHelper from "./ND_AxisHelper.js";
 
 class ND_Camera{
     constructor(N, raio=3){
@@ -242,8 +243,9 @@ export default class ND_Cameras{
         ///const cols = size[1];
         let projetados = [];
         if (this.cameras.some(camera => camera.precisaUpdate)){
-            let pnts = ndObj.geometriaOriginal.vertices;
-            let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
+            
+            let pnts = ndObj.geometria.vertices;
+            //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
             for (let camera of this.cameras){
                 //adiciona coordenadas homogenias
                 const size = math.size(pnts).valueOf();
@@ -252,18 +254,15 @@ export default class ND_Cameras{
                 //console.log(camera.getMatrixProjecao());
                 pntsH = math.transpose(math.multiply(camera.getMatrixProjecao(), math.transpose(pntsH)));
                 //console.log(projetadosH);
-                profundidades = pntsH.toArray().map(vertice => vertice[camera.dimN]);
+                //profundidades = pntsH.toArray().map(vertice => vertice[camera.dimN]);
                 //profundidades = pntsHArray.map();
-                pntsH.forEach((vertice, i) => {
-                    
-                });
 
                 pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
                 
                 //console.log(projetados);
                 //console.log('projetou');
                 
-                camera.precisaUpdate = false;
+                //camera.precisaUpdate = false;
             }
             //console.log("Alou!");
             //console.log(pnts);

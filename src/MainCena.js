@@ -3,8 +3,12 @@ import { OrbitControls } from "jsm/controls/OrbitControls.js";
 import Stats from 'jsm/libs/stats.module.js';
 import { GUI } from "jsm/libs/lil-gui.module.min.js";
 
+import { readNDP, readPOL } from "./lib/FileReader.js";
+
 import ND_Object from './ND_Object.js';
 import ND_Cameras from './ND_Cameras.js';
+
+import ND_AxesHelper from "./ND_AxisHelper.js";
 //import { lerArquivo } from './lib/FileImporter.js';
 
 const conteudohcubo = `4 4
@@ -119,13 +123,15 @@ export default class MainCena {
     this.stats = undefined;
     this.controls = undefined;
     this.gui = undefined;
+
+    //Helper
+    this.axesHelperND = undefined;
     
     //Conteudo da cena
     this.arquivo = undefined;
 
     this.NDObj = undefined;
-    this.NDCams = undefined;
-    
+    this.NDCams = undefined;    
 
     // NOTE: Lighting is basically required.
     this.ambientLight = undefined;
@@ -169,28 +175,21 @@ export default class MainCena {
     this.stats = Stats();
     document.body.appendChild(this.stats.dom);
 
+    //Axes Helper
+    this.axesHelper = new THREE.AxesHelper(1);
+    this.scene.add(this.axesHelper);
 
     //Botão para importar arquivos (fica escondido)
     document.getElementById('fileInput').addEventListener('change', (event) => this.fileSelect(event));
-    
-    var params = {
-        loadFile : function() { 
-          document.getElementById('fileInput').click();
-          
-        }
-    };
+  
 
     //GUI
     this.gui = new GUI();
-    this.gui.add(params, 'loadFile').name('Load file');
 
     //this.scene.background = new THREE.Color(0x654321);
-    this.gui.addColor(this.scene, 'background').name('Cor de Fundo');
-    
-
-    //Axes Helper
-    const axesHelper = new THREE.AxesHelper(1);
-    this.scene.add(axesHelper);
+    this.pastaControles = this.gui.addFolder('Helpers');
+    this.pastaControles.addColor(this.scene, 'background').name('Background Color');
+    this.pastaControles.add(this.axesHelper, 'visible').name('Axis Helper');
 
     //const gridHelper = new THREE.GridHelper( 10, 100 );
     //this.scene.add( gridHelper );
@@ -262,6 +261,7 @@ export default class MainCena {
     this.controls.update();
 
     this.NDCams.projetaObjetos(this.NDObj);
+    //this.NDCams.projetaObjetos(this.axesHelperND);
     this.NDCams.lookAtOrigem();
   }
 
@@ -319,9 +319,15 @@ export default class MainCena {
       this.scene.remove(this.NDObj.Mesh);
     };
     
+    let geometria;
+    if (ehNDP){
+      geometria = readNDP(conteudo);
+    } else {
+      geometria = readPOL(conteudo);
+    }
 
     //Geometria inicial
-    this.NDObj = new ND_Object(conteudo, ehNDP);
+    this.NDObj = new ND_Object(geometria);
     this.NDCams = new ND_Cameras(this.NDObj.dimN);
 
     //Primeira projeção
@@ -329,12 +335,27 @@ export default class MainCena {
     this.NDCams.projetaObjetos(this.NDObj);
     this.NDCams.lookAtOrigem();
 
+    //AxesHelper
+    //this.axesHelperND = new ND_AxesHelper(this.NDObj.dimN);
+    //this.scene.add(this.axesHelperND.Mesh);
+    //this.NDCams.projetaObjetos(this.NDObj);
+
     //GUI da geometria
-    this.pastaGeometria = this.gui.addFolder('Geometria');
-    this.pastaMapa_Cores = this.pastaGeometria.addFolder('Mapa de Cores');
-    this.pastaMapa_Cores.addColor(this.NDObj, 'cor1').name('Cor 1').onChange(() => this.NDObj.updateColors());
-    this.pastaMapa_Cores.addColor(this.NDObj, 'cor2').name('Cor 2').onChange(() => this.NDObj.updateColors());
-    this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1).step(1).name('Coordenada Colorida').onChange(() => this.NDObj.updateColors());
+    this.pastaGeometria = this.gui.addFolder('Geometry');
+
+    //GUI Seletor de arquivos
+    var params = {
+      loadFile : function() { 
+        document.getElementById('fileInput').click();
+      }
+    };
+    this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
+
+    //GUI do mapa de cores
+    this.pastaMapa_Cores = this.pastaGeometria.addFolder('Color Map');
+    this.pastaMapa_Cores.addColor(this.NDObj, 'cor1').name('Color 1').onChange(() => this.NDObj.updateColors());
+    this.pastaMapa_Cores.addColor(this.NDObj, 'cor2').name('Color 2').onChange(() => this.NDObj.updateColors());
+    this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1).step(1).name('Colored coordenate').onChange(() => this.NDObj.updateColors());
     this.pastaGeometria.close();
 
     //GUI das cameras
@@ -345,7 +366,7 @@ export default class MainCena {
       const cameraIDFolder = this.pastaCameras.addFolder(`Camera ${camera.dimN}D`);
 
       //Seleciona FoV
-      cameraIDFolder.add(camera, "FoV", 0, 90).name("Field of View").onChange(() => {
+      cameraIDFolder.add(camera, "FoV", 0, 180).name("Field of View").onChange(() => {
         camera.perspective = (camera.FoV != 0);
         camera.updateProjectionMatrix();
         camera.lookAt(math.zeros(camera.dimN), undefined, true);
@@ -353,7 +374,7 @@ export default class MainCena {
 
       //Toggle perspectiva
       cameraIDFolder.add(camera, "perspective")
-      .name(`Perspectiva`)
+      .name(`Perspective`)
       .listen()
       .onChange(() => {camera.lookAt(math.zeros(camera.dimN), undefined, true)});
       
