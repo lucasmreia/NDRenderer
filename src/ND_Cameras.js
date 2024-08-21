@@ -3,18 +3,21 @@ import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND } from "./lib/N
 import ND_AxesHelper from "./ND_AxisHelper.js";
 
 class ND_Camera{
-    constructor(N, raio=3){
+    constructor(N, raioObj=3){
         this.dimN = N;
         
-        this.raio = raio;
+        this.raioObj = raioObj;
+        this.tamAparente = 1;
+
         this.esfericas = Array(this.dimN-1).fill(0);
         this.esfericas[N-2] = math.pi;
+
+        this.FoV = 45;
+        this.raio = 3;
 
         this.UpdatePos();
 
         this.direcao = math.multiply(-1, this.position)
-
-        this.FoV = 45;
 
         this.precisaUpdate = true
 
@@ -38,7 +41,7 @@ class ND_Camera{
     }
 
     UpdatePos(){
-        let pos = Array(this.dimN).fill(this.raio);
+        let pos = Array(this.dimN).fill(1);
         /*
         for (let i=this.dimN-2; i >= 0; i--) {
             if (i == this.dimN-2){
@@ -55,7 +58,7 @@ class ND_Camera{
                 pos[j] *= math.cos(this.esfericas[i]);
             }
         }
-        this.position = math.matrix(pos);
+        this.position = math.multiply(math.matrix(pos), this.raio);
         
     }
 
@@ -83,6 +86,16 @@ class ND_Camera{
         //console.log(math.size(this.position));
         //console.log(math.size(math.transpose([this.position])));
         this.position = math.transpose(math.multiply(matrizRotacaoND(this.dimN, x, y, theta), math.transpose(this.position)));
+    }
+
+    updateFoV(){
+        //Para atualizar a distância da camera quando o FoV muda
+        //const CotFov = 1/math.tan(this.FoV*0.5*math.pi/180);
+        //this.raio = CotFov + this.raioObj + 1;// + this.tamAparente;
+        this.perspective = (this.FoV != 0);
+        //this.UpdatePos();
+        this.updateProjectionMatrix();
+        this.lookAt(math.zeros(this.dimN), undefined, true);
     }
 
     updateProjectionMatrix(){
@@ -262,7 +275,7 @@ export default class ND_Cameras{
                 //console.log(projetados);
                 //console.log('projetou');
                 
-                //camera.precisaUpdate = false;
+                camera.precisaUpdate = false;
             }
             //console.log("Alou!");
             //console.log(pnts);

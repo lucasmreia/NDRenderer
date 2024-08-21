@@ -286,8 +286,8 @@ export default class MainCena {
         const ehExtensaoValida = extensoesValidas.some(extension => nomeArquivo.endsWith(extension));
         
         if (!ehExtensaoValida) {
-            console.error('Formato de arquivo inválido. Por favor, selecione um arquivo .pol ou .ndp.');
-            alert('Formato de arquivo inválido. Por favor, selecione um arquivo .pol ou .ndp.');
+            console.error('Invalid file format. Please, select a .pol or .ndp format.');
+            alert('Invalid file format. Please, select a file under .pol or .ndp format.');
             return;
         }
 
@@ -325,10 +325,10 @@ export default class MainCena {
     } else {
       geometria = readPOL(conteudo);
     }
-
+    console.log(geometria);
     //Geometria inicial
     this.NDObj = new ND_Object(geometria);
-    this.NDCams = new ND_Cameras(this.NDObj.dimN);
+    this.NDCams = new ND_Cameras(this.NDObj.dimN, this.NDObj.centrodeMassa);
 
     //Primeira projeção
     this.scene.add(this.NDObj.Mesh);
@@ -356,6 +356,7 @@ export default class MainCena {
     this.pastaMapa_Cores.addColor(this.NDObj, 'cor1').name('Color 1').onChange(() => this.NDObj.updateColors());
     this.pastaMapa_Cores.addColor(this.NDObj, 'cor2').name('Color 2').onChange(() => this.NDObj.updateColors());
     this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1).step(1).name('Colored coordenate').onChange(() => this.NDObj.updateColors());
+    this.pastaMapa_Cores.close();
     this.pastaGeometria.close();
 
     //GUI das cameras
@@ -366,17 +367,28 @@ export default class MainCena {
       const cameraIDFolder = this.pastaCameras.addFolder(`Camera ${camera.dimN}D`);
 
       //Seleciona FoV
-      cameraIDFolder.add(camera, "FoV", 0, 180).name("Field of View").onChange(() => {
-        camera.perspective = (camera.FoV != 0);
-        camera.updateProjectionMatrix();
-        camera.lookAt(math.zeros(camera.dimN), undefined, true);
+      cameraIDFolder.add(camera, "FoV", 0, 120)
+      .name("Field of View")
+      .listen()
+      .onChange(() => {
+        camera.updateFoV();
+        //camera.perspective = (camera.FoV != 0);
+        //camera.updateProjectionMatrix();
+        //camera.lookAt(math.zeros(camera.dimN), undefined, true);
       });
 
       //Toggle perspectiva
       cameraIDFolder.add(camera, "perspective")
       .name(`Perspective`)
       .listen()
-      .onChange(() => {camera.lookAt(math.zeros(camera.dimN), undefined, true)});
+      .onChange(() => {
+        //console.log(camera.perspective);
+        //console.log(camera.FoV);
+        //if (camera.perspective && camera.FoV == 0) {
+        //  camera.FoV = 45;
+        //}
+        camera.lookAt(math.zeros(camera.dimN), undefined, true);
+      });
       
       //Seleciona coordenadas hyperpolares
       camera.esfericas.forEach((value, index) => {

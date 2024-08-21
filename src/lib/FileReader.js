@@ -19,11 +19,25 @@ export function readNDP(conteudo) {
     }
     //console.log(verts.slice(0, nVrts));
 
-    let nArestas = Number(lines[2+nVrts]);
     //console.log(nArestas);
+    let lin_num_arestas = 2+nVrts;
     let faces = [];
-    for (let i=0; i<nArestas; i++){
-        faces.push(lines[3 + nVrts + i].split(" ").filter((linha) => linha.length>0).map((num) => Number(num)));
+
+    while (lin_num_arestas < lines.length && lines[lin_num_arestas].trim() != ""){
+        let nArestas = Number(lines[lin_num_arestas]);
+
+
+        let arestas = []
+
+        for (let i=0; i<nArestas; i++){
+            arestas.push(lines[1 + lin_num_arestas + i]
+                .split(" ")
+                .filter((linha) => linha.length>0)
+                .map((num) => Number(num)));
+        }
+
+        faces.push(arestas);
+        lin_num_arestas += nArestas + 1
     }
     //console.log(faces);
 
@@ -31,17 +45,67 @@ export function readNDP(conteudo) {
         N: N,
         K: K,
         vertices: verts,
-        faces: [faces],
+        faces: faces,
     };
 
     return geometria;
 };
 
+class ArrayKeyedMap extends Map {
+    //Classe facilita utilizar listas como chaves de dicionarios
+    get(array) {
+      return super.get(this.#toKey(array));
+    }
+    
+    set(array, value) {
+      return super.set(this.#toKey(array), value);
+    }
+    
+    has(array) {
+      return super.has(this.#toKey(array));
+    }
+    
+    delete(array) {
+      return super.delete(this.#toKey(array));
+    }
+    
+    #toKey(array) {
+      return JSON.stringify(array);
+    }
+  }
+
+function get_indice_face(verts_dic,
+                         nmkfaces_dic,
+                         hcubo,
+                         face,
+                         dim) {
+    if (dim == 1) {
+        //console.log(verts_dic);
+        let indices = face.map((t) => {
+            //console.log(t);
+            //console.log(hcubo.vertices[t]);
+            //console.log(verts_dic.has(hcubo.vertices[t]))
+            return verts_dic.get(hcubo.vertices[t]);
+        });
+        //console.log(indices);
+        indices.sort();
+        return indices;
+    }
+    const dic = nmkfaces_dic[dim-2];
+    let indices = face.map((t) => {
+        return dic.get(get_indice_face(verts_dic,
+                                nmkfaces_dic,
+                                hcubo,
+                                hcubo.faces[dim-2][t],
+                                dim-1));
+    });
+    indices.sort();
+    return indices
+}
+
 //Recebe o conteudo de um .POL e retorna sua geometria
 export function readPOL(conteudo) {
     const lines = conteudo.split("\n");
-    //lines.forEach(line => console.log(line));
-    //console.log(lines);
 
     let [N, K] = lines[0].split(" ")
                         .filter((lin) => lin.length>0)
@@ -49,14 +113,12 @@ export function readPOL(conteudo) {
 
     let divs = lines[1].split(" ").filter((linha) => linha.length>0).map((num) => Number(num));
 
-    //console.log(N, K, divs);
-
     let hcubos = [];
     for (let i=0; i<lines.length; i++){
     if (lines[i].length==0){
         //console.log(i);
         let verts = [];
-            let arestas = [];
+        let nmkfaces = [];
             if (lines[i+1] == "-1"){ break };
 
             let numVrts = Number(lines[i+3]);
@@ -68,53 +130,73 @@ export function readPOL(conteudo) {
                     .map((num) => Number(num)));
             }
             //console.log(verts);
-            let numArestas = Number(lines[i+3+numVrts+1]);
-            for (let j=0; j<numArestas; j++){
-                arestas.push(lines[i+5+numVrts+j]
-                    .split(" ")
-                    .filter((linha) => linha.length>0)
-                    .map((num) => Number(num)-1));
+            let lin_num_arestas = i+3+numVrts+1;
+            let num_arestas;
+            while (lines[lin_num_arestas].length !=0) {
+                let arestas = [];
+                num_arestas = Number(lines[lin_num_arestas]);
+                for (let j=0; j<num_arestas; j++){
+                    arestas.push(lines[lin_num_arestas+1+j]
+                        .split(" ")
+                        .filter((linha) => linha.length>0)
+                        .map((num) => Number(num)-1));
+                }
+                lin_num_arestas += num_arestas + 1
+                nmkfaces.push(arestas)
             }
+           
+            hcubos.push({vertices :verts, faces: nmkfaces});
+
             //console.log({vertices :verts, faces: arestas});
-            hcubos.push({vertices :verts, faces: arestas});
         }
     }
 
+    let verts_dic = new ArrayKeyedMap(); //Vertice eh a chave e o valor eh o seu indice
     let vertices = [];
-    let verts_dic = {}; //Vertice eh a chave e o valor eh o seu indice
-    let faces = [];
 
-    let arestas = [];
-    let arestas_dic = {};
+    let nmkfaces_dic = Array(N - K).fill(null).map(() => (new ArrayKeyedMap()));
+    let nmkfaces = Array(N - K).fill(null).map(() => ([]));
+
+    let num_verts_original = 0
+    let num_nmkfaces_original = Array(N - K).fill(0);
 
     for (let hcubo of hcubos) {
+
         for (let vertice of hcubo.vertices){
-            if (!verts_dic.hasOwnProperty(vertice)){
-                verts_dic[vertice] = vertices.length;
+            //console.log(verts_dic.has(vertice));
+            if (!verts_dic.has(vertice)){
+                verts_dic.set(vertice, vertices.length);
                 vertices.push(vertice);
             }
         }
+        num_verts_original += hcubo.vertices.length;
 
-        for (let aresta of hcubo.faces){
-            let aresta_global = [verts_dic[hcubo.vertices[aresta[0]]], verts_dic[hcubo.vertices[aresta[1]]]];
-            if (aresta_global[0] > aresta_global[1]){
-                aresta_global = [aresta_global[1], aresta_global[0]];
+        let dim = 0
+        for (let faces of hcubo.faces){
+            for (let aresta of faces) {
+                aresta = get_indice_face(verts_dic, nmkfaces_dic, hcubo, aresta, dim+1)
+                //console.log(aresta);
+                if (!nmkfaces_dic[dim].has(aresta)) {
+                    nmkfaces_dic[dim].set(aresta, nmkfaces[dim].length);
+                    nmkfaces[dim].push(aresta);
+                }
+                num_nmkfaces_original[dim] += faces.length
             }
 
-            if (!arestas_dic.hasOwnProperty(aresta_global)){
-                arestas_dic[aresta_global] = arestas.length;
-                arestas.push(aresta_global);
-            }
+            dim += 1;
         }
     };
-    faces.push(arestas);
-
+    //faces.push(arestas);
+    console.log(`De ${num_verts_original} para ${vertices.length} vertices`);
+    num_nmkfaces_original.forEach((element, index) => {
+        console.log(`De ${element} para ${nmkfaces[index].length} ${index+1}-faces`);
+    });
 
     let geometria = {
         N: N,
         K: K,
         vertices: vertices,
-        faces: faces,
+        faces: nmkfaces,
     };
 
     return geometria;

@@ -46,12 +46,13 @@ export default class ND_Object {
 
         this.coordColorida = 0;// Coordenada por onde se propaga a cor, deve estar entre 0 e N-1
         
+        this.centrodeMassa = math.zeros(this.dimN);
+        this.raio = 0;
         this.coordsMinMax = [];
         for (let i=0; i<this.dimN; i++){
             this.coordsMinMax[i] = {min:1_000, max:-1_000};
         }
 
-        //this.centrodeMassa = math.zeros(this.dimN);
 
         for (let vertice of this.vertices){
             for (let i=0; i<this.dimN; i++){
@@ -62,14 +63,20 @@ export default class ND_Object {
                     this.coordsMinMax[i].max = vertice[i];
                 }
                 //console.log(vertice[i])
-                //this.centrodeMassa[i] += vertice[i];//Mude isso depois
             }
-            //this.centrodeMassa = math.sum(this.centrodeMassa, math.matrix(vertice));
+            if (math.norm(vertice) > this.raio){
+                this.raio = math.norm(vertice);
+            }
+            //this.centrodeMassa += math.matrix(vertice);//Mude isso depois
+            this.centrodeMassa = math.add(this.centrodeMassa, vertice);
         }
-
+        this.centrodeMassa = math.divide(this.centrodeMassa, this.vertices.length);
+        
         //console.log(this.centrodeMassa);
 
-        console.log(this.coordsMinMax);
+        //console.log(this.raio);
+
+        //console.log(this.coordsMinMax);
 
         //Cor dos vertices
         //Buffer com cor de cada vertice
