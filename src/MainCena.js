@@ -7,6 +7,7 @@ import { readNDP, readPOL } from "./lib/FileReader.js";
 
 import ND_Object from './ND_Object.js';
 import ND_Cameras from './ND_Cameras.js';
+import ND_Corte from './ND_Corte.js';
 
 import ND_AxesHelper from "./ND_AxisHelper.js";
 //import { lerArquivo } from './lib/FileImporter.js';
@@ -334,6 +335,10 @@ export default class MainCena {
     this.scene.add(this.NDObj.Mesh);
     this.NDCams.projetaObjetos(this.NDObj);
     this.NDCams.lookAtOrigem();
+
+    //Corte ND
+    this.Corte = new ND_Corte(this.NDObj);
+    //this.Corte.corta_ultima_coord();
 
     //AxesHelper
     //this.axesHelperND = new ND_AxesHelper(this.NDObj.dimN);

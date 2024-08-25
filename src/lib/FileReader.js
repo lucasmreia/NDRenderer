@@ -1,6 +1,7 @@
 //Recebe o conteudo de um .NDP e retorna sua geometria
 export function readNDP(conteudo) {
-    const lines = conteudo.split("\n").filter((linha) => linha.length>0);
+    const lines = conteudo.split("\n")
+    .filter((linha) => linha.length>0);
     //lines.forEach(line => console.log(line));
     //console.log(lines);
 
@@ -111,50 +112,52 @@ export function readPOL(conteudo) {
                         .filter((lin) => lin.length>0)
                         .map((num) => Number(num));
 
-    let divs = lines[1].split(" ").filter((linha) => linha.length>0).map((num) => Number(num));
+    let divs = lines[1].split(" ")
+                    .filter((linha) => linha.length>0)
+                    .map((num) => Number(num));
 
     let hcubos = [];
     for (let i=0; i<lines.length; i++){
-    if (lines[i].length==0){
-        //console.log(i);
-        let verts = [];
-        let nmkfaces = [];
-            if (lines[i+1] == "-1"){ break };
+        if (lines[i].length==0){
+            //console.log(i);
+            let verts = [];
+            let nmkfaces = [];
+                if (lines[i+1] == "-1"){ break };
 
-            let numVrts = Number(lines[i+3]);
-            for (let j=0; j<numVrts; j++){
-                verts.push(lines[i+4+j]
-                    .split(" ")
-                    .filter((linha) => linha.length>0)
-                    .slice(K+1)
-                    .map((num) => Number(num)));
-            }
-            //console.log(verts);
-            let lin_num_arestas = i+3+numVrts+1;
-            let num_arestas;
-            while (lines[lin_num_arestas].length !=0) {
-                let arestas = [];
-                num_arestas = Number(lines[lin_num_arestas]);
-                for (let j=0; j<num_arestas; j++){
-                    arestas.push(lines[lin_num_arestas+1+j]
+                let numVrts = Number(lines[i+3]);
+                for (let j=0; j<numVrts; j++){
+                    verts.push(lines[i+4+j]
                         .split(" ")
                         .filter((linha) => linha.length>0)
-                        .map((num) => Number(num)-1));
+                        .slice(K+1)
+                        .map((num) => Number(num)));
                 }
-                lin_num_arestas += num_arestas + 1
-                nmkfaces.push(arestas)
-            }
-           
-            hcubos.push({vertices :verts, faces: nmkfaces});
+                //console.log(verts);
+                let lin_num_arestas = i+3+numVrts+1;
+                let num_arestas;
+                while (lines[lin_num_arestas].length !=0) {
+                    let arestas = [];
+                    num_arestas = Number(lines[lin_num_arestas]);
+                    for (let j=0; j<num_arestas; j++){
+                        arestas.push(lines[lin_num_arestas+1+j]
+                            .split(" ")
+                            .filter((linha) => linha.length>0)
+                            .map((num) => Number(num)-1));
+                    }
+                    lin_num_arestas += num_arestas + 1
+                    nmkfaces.push(arestas)
+                }
+            
+                hcubos.push({vertices :verts, faces: nmkfaces});
 
-            //console.log({vertices :verts, faces: arestas});
+                //console.log({vertices :verts, faces: arestas});
         }
     }
 
     let verts_dic = new ArrayKeyedMap(); //Vertice eh a chave e o valor eh o seu indice
     let vertices = [];
 
-    let nmkfaces_dic = Array(N - K).fill(null).map(() => (new ArrayKeyedMap()));
+    let nmkfaces_dic = Array(N - K).fill(null).map(() => (new ArrayKeyedMap())); //Indices de dim menor sao a chave e o valor eh o seu indice
     let nmkfaces = Array(N - K).fill(null).map(() => ([]));
 
     let num_verts_original = 0
