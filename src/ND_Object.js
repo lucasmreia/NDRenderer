@@ -5,7 +5,7 @@ import { extraiNumerosStrings } from './lib/FileImporter.js';
 
 
 export default class ND_Object {
-    constructor(geometria){
+    constructor(geometria, Max_Pontos=1){
         //this.arquivo = arquivo;
         this.geometria = geometria;
         
@@ -23,55 +23,28 @@ export default class ND_Object {
         this.dimN = this.geometria.N; //Dimensao do espaço
         this.dimK = this.geometria.K; 
 
-        this.vertices = this.geometria.vertices;
+
         //this.facesKDim = geometria.faces;//Lista com K listas representado a ligação das faces de cada dimensao
 
         this.geometry3D = new THREE.BufferGeometry();
 
-        //this.vertices = matrix(geometria.this.vertices);
-        //console.log(this.vertices);
-
-
-
-
         const verts = this.geometria.vertices.map((vertice) => vertice.slice(0, 3)).flat();
 
+        //console.log(this.geometria.vertices.length);
+
         //Buffer com vertices da malha
-        this.vertices_para_buffer = new Float32Array(verts);
-        this.geometry3D.setAttribute('position', new THREE.BufferAttribute(this.vertices_para_buffer, 3));
+        this.Max_Pontos = Math.max(this.geometria.vertices.length, Max_Pontos)
+        const positions_buffer = new Float32Array(this.Max_Pontos * 3);
+        this.geometry3D.setAttribute('position', new THREE.BufferAttribute(positions_buffer, 3));
         
+        this.geometry3D.setDrawRange(0, this.geometria.faces[0].length * 2);
 
         this.cor1 = new THREE.Color( 0x00ff00 );
         this.cor2 = new THREE.Color( 0xff00ff );
 
         this.coordColorida = 0;// Coordenada por onde se propaga a cor, deve estar entre 0 e N-1
         
-        this.centrodeMassa = math.zeros(this.dimN);
-        this.raio = 0;
-        this.coordsMinMax = [];
-        for (let i=0; i<this.dimN; i++){
-            this.coordsMinMax[i] = {min:1_000, max:-1_000};
-        }
-
-
-        for (let vertice of this.vertices){
-            for (let i=0; i<this.dimN; i++){
-                if (vertice[i] < this.coordsMinMax[i].min){
-                    this.coordsMinMax[i].min = vertice[i];
-                }
-                if (vertice[i] > this.coordsMinMax[i].max){
-                    this.coordsMinMax[i].max = vertice[i];
-                }
-                //console.log(vertice[i])
-            }
-            if (math.norm(vertice) > this.raio){
-                this.raio = math.norm(vertice);
-            }
-            //this.centrodeMassa += math.matrix(vertice);//Mude isso depois
-            this.centrodeMassa = math.add(this.centrodeMassa, vertice);
-        }
-        this.centrodeMassa = math.divide(this.centrodeMassa, this.vertices.length);
-        
+        this.calculaCentrodeMassa();
         //console.log(this.centrodeMassa);
 
         //console.log(this.raio);
@@ -104,7 +77,7 @@ export default class ND_Object {
             pos = vec4(position, 1.0);
             gl_Position = projectionMatrix * modelViewMatrix * pos;
         }
-        `
+        `;
         const fragmentShader = `
         //varying vec4 pos;
         varying vec4 cor;
@@ -112,7 +85,7 @@ export default class ND_Object {
         void main() {
             gl_FragColor = vec4(cor.xyz, 1);//cor.y, 1);//vec4(cor, cor, 0, 1);
         }
-        `
+        `;
 
         this.material = new THREE.ShaderMaterial({
             vertexShader,
@@ -124,25 +97,40 @@ export default class ND_Object {
         this.Mesh = new THREE.LineSegments(this.geometry3D, this.material);
 
         this.arquivo = undefined;
-        this.linhas = undefined;
+        
+        this.precisaUpdate = false;
     }
 
-    /*//Descartar
-    load_file(){
-        const reader = new FileReader();
-        //let linhas;
-        reader.onload = function(e) {
-            const conteudo = e.target.result;
-            //console.log("gerando ND_Object!!", conteudo);// Aqui você pode fazer o que quiser com o conteúdo do arquivo
-            this.linhas = conteudo.split('\n').map(linha => linha.trim());
-            this.dimK = this.linhas[0];
-            //console.log(linhas);
-            //this.arquivo = conteudo;
-            //this.politope = new ND_Object(conteudo);//Isso n deveria ficar aqui
-        };
-        reader.readAsText(this.arquivo);
+    calculaCentrodeMassa(){
+        this.centrodeMassa = math.zeros(this.dimN);
+        this.raio = 0;
+        this.coordsMinMax = [];
+        for (let i=0; i<this.dimN; i++){
+            this.coordsMinMax[i] = {min:1_000, max:-1_000};
+        }
 
-    }*/
+
+        for (let vertice of this.geometria.vertices){
+            for (let i=0; i<this.dimN; i++){
+                if (vertice[i] < this.coordsMinMax[i].min){
+                    this.coordsMinMax[i].min = vertice[i];
+                }
+                if (vertice[i] > this.coordsMinMax[i].max){
+                    this.coordsMinMax[i].max = vertice[i];
+                }
+                //console.log(vertice[i])
+            }
+            if (math.norm(vertice) > this.raio){
+                this.raio = math.norm(vertice);
+            }
+            //this.centrodeMassa += math.matrix(vertice);//Mude isso depois
+            this.centrodeMassa = math.add(this.centrodeMassa, vertice);
+        }
+        this.centrodeMassa = math.divide(this.centrodeMassa, this.geometria.vertices.length);
+        //console.log(this.centrodeMassa);
+        //console.log(this.coordsMinMax);
+        //console.log(this.raio);
+    }
 
     updateColors(){
         //const colorAtribute = this.geometry3D.getAttribute('colorPosition');
@@ -156,145 +144,49 @@ export default class ND_Object {
         this.geometry3D.setAttribute('colorPosition', new THREE.BufferAttribute(this.colorvertices_para_buffer, 3));
     }
 
+    updateGeometria(novaGeometria){
+        this.geometria = novaGeometria;
+        this.calculaCentrodeMassa();
+        //this.updateVertices(this.geometria.vertices);
+        this.setBufferArestas();
+        this.updateColors();
+        
+    }
+
     updateVertices(novosVertices){
+        //console.log(novosVertices);
+        //this.geometria.vertices = novosVertices;
         const positionAttribute = this.geometry3D.getAttribute('position');
+        //console.log(positionAttribute);
 
         for (let i=0; i<novosVertices.length; i++) {
-            positionAttribute.setXYZ(i, novosVertices[i][0], novosVertices[i][1], novosVertices[i][2]);
+            positionAttribute.setXYZ(i, 
+                novosVertices[i][0], 
+                novosVertices[i][1], 
+                novosVertices[i][2]);
         }
+        //positionAttribute.setXYZ(0, 0, 0, 0);
+        //console.log(positionAttribute);
+
+        this.Mesh.geometry.setDrawRange(0, this.geometria.faces[0].length * 2);
 
         this.geometry3D.computeBoundingBox();
         this.geometry3D.computeBoundingSphere();
 
         this.geometry3D.attributes.position.needsUpdate = true;
+
+        this.precisaUpdate = false;
+    }
+
+
+    setBufferArestas(){
+        const ind = this.geometria.faces[0].flat();
+        this.geometry3D.indices = new Uint16Array(ind);
+        this.geometry3D.setIndex(new THREE.BufferAttribute(this.geometry3D.indices, 1));
     }
 
 }
 
-
-
-//Esses devem sair daqui...?
-//Recebe o conteudo de um .NDP e retorna sua geometria
-function readNDP(conteudo) {
-    const lines = conteudo.split("\n").filter((linha) => linha.length>0);
-    //lines.forEach(line => console.log(line));
-    //console.log(lines);
-
-    let N = Number(lines[0][0]);
-    let K = Number(lines[0][2]);
-
-    //console.log(N, K);
-
-    let nVrts = Number(lines[1]);
-
-    let verts = [];
-
-    for (let i=0; i<nVrts; i++){
-        verts.push(lines[2 + i].split(" ").filter((linha) => linha.length>0).map((num) => Number(num)));
-        //console.log(verts[i]);
-    }
-    //console.log(verts.slice(0, nVrts));
-
-    let nArestas = Number(lines[2+nVrts]);
-    //console.log(nArestas);
-    let faces = [];
-    for (let i=0; i<nArestas; i++){
-        faces.push(lines[3 + nVrts + i].split(" ").filter((linha) => linha.length>0).map((num) => Number(num)));
-    }
-    //console.log(faces);
-
-    let geometria = {
-        N: N,
-        K: K,
-        vertices: verts,
-        faces: [faces],
-    };
-
-    return geometria;
-};
-
-//Recebe o conteudo de um .POL e retorna sua geometria
-function readPol(conteudo) {
-    const lines = conteudo.split("\n");
-    //lines.forEach(line => console.log(line));
-    //console.log(lines);
-
-    let [N, K] = lines[0].split(" ")
-                        .filter((lin) => lin.length>0)
-                        .map((num) => Number(num));
-
-    let divs = lines[1].split(" ").filter((linha) => linha.length>0).map((num) => Number(num));
-
-    //console.log(N, K, divs);
-
-    let hcubos = [];
-    for (let i=0; i<lines.length; i++){
-    if (lines[i].length==0){
-        //console.log(i);
-        let verts = [];
-            let arestas = [];
-            if (lines[i+1] == "-1"){ break };
-
-            let numVrts = Number(lines[i+3]);
-            for (let j=0; j<numVrts; j++){
-                verts.push(lines[i+4+j]
-                    .split(" ")
-                    .filter((linha) => linha.length>0)
-                    .slice(K+1)
-                    .map((num) => Number(num)));
-            }
-            //console.log(verts);
-            let numArestas = Number(lines[i+3+numVrts+1]);
-            for (let j=0; j<numArestas; j++){
-                arestas.push(lines[i+5+numVrts+j]
-                    .split(" ")
-                    .filter((linha) => linha.length>0)
-                    .map((num) => Number(num)-1));
-            }
-            //console.log({vertices :verts, faces: arestas});
-            hcubos.push({vertices :verts, faces: arestas});
-        }
-    }
-
-    let vertices = [];
-    let verts_dic = {}; //Vertice eh a chave e o valor eh o seu indice
-    let faces = [];
-
-    let arestas = [];
-    let arestas_dic = {};
-
-    for (let hcubo of hcubos) {
-        for (let vertice of hcubo.vertices){
-            if (!verts_dic.hasOwnProperty(vertice)){
-                verts_dic[vertice] = vertices.length;
-                vertices.push(vertice);
-            }
-        }
-
-        for (let aresta of hcubo.faces){
-            let aresta_global = [verts_dic[hcubo.vertices[aresta[0]]], verts_dic[hcubo.vertices[aresta[1]]]];
-            if (aresta_global[0] > aresta_global[1]){
-                aresta_global = [aresta_global[1], aresta_global[0]];
-            }
-
-            if (!arestas_dic.hasOwnProperty(aresta_global)){
-                arestas_dic[aresta_global] = arestas.length;
-                arestas.push(aresta_global);
-            }
-        }
-    };
-    faces.push(arestas);
-
-
-    let geometria = {
-        N: N,
-        K: K,
-        vertices: vertices,
-        faces: faces,
-    };
-
-    return geometria;
-};
 
 
 function mapNumRange(num, inMin, inMax, outMin, outMax){

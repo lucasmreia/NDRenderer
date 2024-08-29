@@ -132,7 +132,9 @@ export default class MainCena {
     this.arquivo = undefined;
 
     this.NDObj = undefined;
-    this.NDCams = undefined;    
+    this.NDCams = undefined;
+    
+    this.corte = undefined;
 
     // NOTE: Lighting is basically required.
     this.ambientLight = undefined;
@@ -191,6 +193,13 @@ export default class MainCena {
     this.pastaControles = this.gui.addFolder('Helpers');
     this.pastaControles.addColor(this.scene, 'background').name('Background Color');
     this.pastaControles.add(this.axesHelper, 'visible').name('Axis Helper');
+    var params = {
+      loadFile : function() { 
+        document.getElementById('fileInput').click();
+      }
+    };
+
+    this.pastaControles.add(params, 'loadFile').name('Load Geometry');
 
     //const gridHelper = new THREE.GridHelper( 10, 100 );
     //this.scene.add( gridHelper );
@@ -261,7 +270,7 @@ export default class MainCena {
     this.stats.update();
     this.controls.update();
 
-    this.NDCams.projetaObjetos(this.NDObj);
+    this.NDCams.projetaObjetos([this.NDObj, this.corte]);
     //this.NDCams.projetaObjetos(this.axesHelperND);
     this.NDCams.lookAtOrigem();
   }
@@ -287,7 +296,7 @@ export default class MainCena {
         const ehExtensaoValida = extensoesValidas.some(extension => nomeArquivo.endsWith(extension));
         
         if (!ehExtensaoValida) {
-            console.error('Invalid file format. Please, select a .pol or .ndp format.');
+            console.error('Invalid file format. Please, select a file under .pol or .ndp format.');
             alert('Invalid file format. Please, select a file under .pol or .ndp format.');
             return;
         }
@@ -315,9 +324,15 @@ export default class MainCena {
       this.pastaGeometria.destroy();
     };
 
+    //Remove GUI do corte anterior
+    if (this.pastaCorte != undefined){
+      this.pastaCorte.destroy();
+    };
+
     //Remove Malha do Objeto anterior
     if (this.NDObj != undefined){
       this.scene.remove(this.NDObj.Mesh);
+      this.scene.remove(this.corte.Mesh);
     };
     
     let geometria;
@@ -331,14 +346,18 @@ export default class MainCena {
     this.NDObj = new ND_Object(geometria);
     this.NDCams = new ND_Cameras(this.NDObj.dimN, this.NDObj.centrodeMassa);
 
+    //Corte ND
+    this.cortador = new ND_Corte(this.NDObj);
+    this.corte = this.cortador.get_fatia();
+
+    //console.log(this.corte.Mesh);
+    
     //Primeira projeção
     this.scene.add(this.NDObj.Mesh);
-    this.NDCams.projetaObjetos(this.NDObj);
+    this.scene.add(this.corte.Mesh);
+    this.NDCams.projetaObjetos([this.NDObj, this.corte]);
     this.NDCams.lookAtOrigem();
 
-    //Corte ND
-    this.Corte = new ND_Corte(this.NDObj);
-    //this.Corte.corta_ultima_coord();
 
     //AxesHelper
     //this.axesHelperND = new ND_AxesHelper(this.NDObj.dimN);
@@ -349,12 +368,15 @@ export default class MainCena {
     this.pastaGeometria = this.gui.addFolder('Geometry');
 
     //GUI Seletor de arquivos
-    var params = {
-      loadFile : function() { 
-        document.getElementById('fileInput').click();
-      }
-    };
-    this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
+    //var params = {
+    //  loadFile : function() { 
+    //    document.getElementById('fileInput').click();
+    //  }
+    //};
+    //this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
+
+    //Toggle visibilidade
+    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty');
 
     //GUI do mapa de cores
     this.pastaMapa_Cores = this.pastaGeometria.addFolder('Color Map');
@@ -363,6 +385,17 @@ export default class MainCena {
     this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1).step(1).name('Colored coordenate').onChange(() => this.NDObj.updateColors());
     this.pastaMapa_Cores.close();
     this.pastaGeometria.close();
+
+    //GUI corte dimencional
+    this.pastaCorte = this.gui.addFolder('Dimensional Cut');
+    this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry');
+    this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.minmax.min, this.cortador.minmax.max)
+                   .name('Cut position')
+                   .onChange(() =>  {this.cortador.corte()
+                    console.log(this.cortador.localDoCorte);
+                    console.log(this.corte);
+                   });
+    this.pastaCorte.close();
 
     //GUI das cameras
     this.pastaCameras = this.gui.addFolder('Cameras');
@@ -397,11 +430,11 @@ export default class MainCena {
       
       //Seleciona coordenadas hyperpolares
       camera.esfericas.forEach((value, index) => {
-        let inter1 = -math.pi*0.5;
-        let inter2 = math.pi*0.5;
+        let inter1 = -math.pi * 0.5 + 1e-6;
+        let inter2 =  math.pi * 0.5 - 1e-6;
         if (index == camera.dimN-2){
           inter1 = 0;
-          inter2 = math.pi*2;
+          inter2 = math.pi * 2;
         }
         cameraIDFolder.add(camera.esfericas, index, inter1, inter2).name(`Phi${index+1}`).onChange(() => {camera.UpdatePos();});
       });

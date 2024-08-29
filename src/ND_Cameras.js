@@ -243,48 +243,49 @@ export default class ND_Cameras{
             camera.lookAt(math.zeros(i));
             this.cameras.push(camera);
         }
-        this.projetados = [];
     }
 
     lookAtOrigem(recalcula = false){
         this.cameras.forEach((camera) => {camera.lookAt(math.zeros(camera.dimN), undefined, recalcula)});
     }
 
-    projetaObjetos(ndObj){
+    projetaObjetos(ndObjs){
         //console.log(pnts);
         ///const size = math.size(pnts).valueOf();
         ///const cols = size[1];
-        let projetados = [];
-        if (this.cameras.some(camera => camera.precisaUpdate)){
-            
-            let pnts = ndObj.geometria.vertices;
-            //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
-            for (let camera of this.cameras){
-                //adiciona coordenadas homogenias
-                const size = math.size(pnts).valueOf();
-                let pntsH = math.resize(pnts, [size[0], size[1]+1], 1);
-                //console.log(math.transpose(pntsH));
-                //console.log(camera.getMatrixProjecao());
-                pntsH = math.transpose(math.multiply(camera.getMatrixProjecao(), math.transpose(pntsH)));
-                //console.log(projetadosH);
-                //profundidades = pntsH.toArray().map(vertice => vertice[camera.dimN]);
-                //profundidades = pntsHArray.map();
+        if (this.cameras.some(camera => camera.precisaUpdate) || ndObjs.some(obj => obj.precisaUpdate)){
+            for (const ndObj of ndObjs) {
+                if (ndObj.Mesh.visible && ndObj.geometria.vertices.length > 0) {
+                    let pnts = ndObj.geometria.vertices;
+                    //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
+                    for (let camera of this.cameras){
+                        //adiciona coordenadas homogenias
+                        const size = math.size(pnts).valueOf();
+                        let pntsH = math.resize(pnts, [size[0], size[1]+1], 1);
+                        //console.log(math.transpose(pntsH));
+                        //console.log(camera.getMatrixProjecao());
+                        pntsH = math.transpose(math.multiply(camera.getMatrixProjecao(), math.transpose(pntsH)));
+                        //console.log(projetadosH);
+                        //profundidades = pntsH.toArray().map(vertice => vertice[camera.dimN]);
+                        //profundidades = pntsHArray.map();
 
-                pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
-                
-                //console.log(projetados);
-                //console.log('projetou');
-                
-                camera.precisaUpdate = false;
+                        pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
+                        
+                        //console.log(projetados);
+                        //console.log('projetou');
+                        
+                        //camera.precisaUpdate = false;
+                    }
+                    //console.log("Alou!");
+                    //console.log(pnts);
+                    //console.log(l);
+                    ndObj.updateVertices(pnts);
+
+                }
             }
-            //console.log("Alou!");
-            //console.log(pnts);
-            ndObj.updateVertices(pnts);
-
-            //ndObj.
-
             //console.log("Projetou!")
-            this.projetados = projetados;
+            this.cameras.forEach((camera) => camera.precisaUpdate=false);
+            
         } //else {
           //  ndObj.updateVertices(projetados[0]);
         //}
