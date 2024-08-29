@@ -376,7 +376,7 @@ export default class MainCena {
     //this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
 
     //Toggle visibilidade
-    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty');
+    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty').onChange(() => this.NDObj.precisaUpdate = true);
 
     //GUI do mapa de cores
     this.pastaMapa_Cores = this.pastaGeometria.addFolder('Color Map');
@@ -388,7 +388,7 @@ export default class MainCena {
 
     //GUI corte dimencional
     this.pastaCorte = this.gui.addFolder('Dimensional Cut');
-    this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry');
+    this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry').onChange(() => this.NDObj.precisaUpdate = true);
     this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.minmax.min, this.cortador.minmax.max)
                    .name('Cut position')
                    .onChange(() =>  {this.cortador.corte()

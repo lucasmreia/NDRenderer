@@ -17,6 +17,7 @@ export default class ND_Corte{
 
         let geometria = this.corta_ultima_coord();
         this.fatiaND = new ND_Object(geometria, this.NDObj.geometria.faces[0].length);
+        this.fatiaND.Mesh.visible = false;
     }
 
     get_fatia(){
