@@ -1,4 +1,7 @@
 import * as THREE from "three";
+//import { matrix, multiply } from "mathjs";
+
+import { extraiNumerosStrings } from './lib/FileImporter.js';
 
 
 export default class ND_Object {
