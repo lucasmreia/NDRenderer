@@ -17,6 +17,8 @@ export default class ND_Corte{
 
         let geometria = this.corta_ultima_coord();
         this.fatiaND = new ND_Object(geometria, this.NDObj.geometria.faces[0].length);
+
+        this.fatiaND.Mesh.visible = false;
     }
 
     get_fatia(){
@@ -95,17 +97,17 @@ export default class ND_Corte{
 
         let geometria = {
             N: this.dimN,
-            K: this.dimN-nmknovasFaces.length,
+            K: 0,//this.dimN-nmknovasFaces.length,
             vertices: novosVertices,
             faces: nmknovasFaces
         }
-        console.log(geometria);
+        //console.log(geometria);
         return geometria;
     };
 
     corte(){
         const geometria = this.corta_ultima_coord();
-        console.log(geometria);
+        //console.log(geometria);
         this.fatiaND.updateGeometria(geometria);
         //this.fatiaND.updateVertices(Array(geometria.vertices.length).fill([0, 0, 0]));
         //this.fatiaND.updateFaces(geometria.faces);

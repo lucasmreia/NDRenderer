@@ -9,8 +9,7 @@ import ND_Object from './ND_Object.js';
 import ND_Cameras from './ND_Cameras.js';
 import ND_Corte from './ND_Corte.js';
 
-import ND_AxesHelper from "./ND_AxisHelper.js";
-//import { lerArquivo } from './lib/FileImporter.js';
+//import ND_AxesHelper from "./ND_AxisHelper.js";
 
 const conteudohcubo = `4 4
 
@@ -341,7 +340,7 @@ export default class MainCena {
     } else {
       geometria = readPOL(conteudo);
     }
-    console.log(geometria);
+    //console.log(geometria);
     //Geometria inicial
     this.NDObj = new ND_Object(geometria);
     this.NDCams = new ND_Cameras(this.NDObj.dimN, this.NDObj.centrodeMassa);
@@ -376,7 +375,7 @@ export default class MainCena {
     //this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
 
     //Toggle visibilidade
-    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty');
+    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty').onChange(() => this.corte.precisaUpdate = true);
 
     //GUI do mapa de cores
     this.pastaMapa_Cores = this.pastaGeometria.addFolder('Color Map');
@@ -388,12 +387,12 @@ export default class MainCena {
 
     //GUI corte dimencional
     this.pastaCorte = this.gui.addFolder('Dimensional Cut');
-    this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry');
+    this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry').onChange(() => this.corte.precisaUpdate = true);
     this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.minmax.min, this.cortador.minmax.max)
                    .name('Cut position')
                    .onChange(() =>  {this.cortador.corte()
-                    console.log(this.cortador.localDoCorte);
-                    console.log(this.corte);
+                    //console.log(this.cortador.localDoCorte);
+                    //console.log(this.corte);
                    });
     this.pastaCorte.close();
 

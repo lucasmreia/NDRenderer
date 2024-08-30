@@ -1,6 +1,5 @@
-//import * as mathjs from "mathjs";
 import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND } from "./lib/ND_Transforms.js";
-import ND_AxesHelper from "./ND_AxisHelper.js";
+//import ND_AxesHelper from "./ND_AxisHelper.js";
 
 class ND_Camera{
     constructor(N, raioObj=3){
