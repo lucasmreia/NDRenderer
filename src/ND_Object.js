@@ -21,8 +21,6 @@ export default class ND_Object {
         this.dimK = this.geometria.K; 
 
 
-        //this.facesKDim = geometria.faces;//Lista com K listas representado a ligação das faces de cada dimensao
-
         this.geometry3D = new THREE.BufferGeometry();
 
         const verts = this.geometria.vertices.map((vertice) => vertice.slice(0, 3)).flat();
@@ -42,11 +40,6 @@ export default class ND_Object {
         this.coordColorida = 0;// Coordenada por onde se propaga a cor, deve estar entre 0 e N-1
         
         this.calculaCentrodeMassa();
-        //console.log(this.centrodeMassa);
-
-        //console.log(this.raio);
-
-        //console.log(this.coordsMinMax);
 
         //Cor dos vertices
         //Buffer com cor de cada vertice
@@ -96,6 +89,7 @@ export default class ND_Object {
         this.arquivo = undefined;
         
         this.precisaUpdate = false;
+        this.precisaUpdateIndices = false;
     }
 
     calculaCentrodeMassa(){
@@ -145,9 +139,9 @@ export default class ND_Object {
         this.geometria = novaGeometria;
         this.calculaCentrodeMassa();
         //this.updateVertices(this.geometria.vertices);
-        this.setBufferArestas();
-        this.updateColors();
-        
+        //this.setBufferArestas();
+        this.precisaUpdate = true;
+        this.precisaUpdateIndices = true;
     }
 
     updateVertices(novosVertices){
@@ -171,6 +165,12 @@ export default class ND_Object {
         this.geometry3D.computeBoundingSphere();
 
         this.geometry3D.attributes.position.needsUpdate = true;
+
+        if (this.precisaUpdateIndices) {
+            this.updateColors();
+            this.setBufferArestas();
+            this.precisaUpdateIndices = false;
+        }
 
         this.precisaUpdate = false;
     }

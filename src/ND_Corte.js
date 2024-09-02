@@ -111,6 +111,5 @@ export default class ND_Corte{
         this.fatiaND.updateGeometria(geometria);
         //this.fatiaND.updateVertices(Array(geometria.vertices.length).fill([0, 0, 0]));
         //this.fatiaND.updateFaces(geometria.faces);
-        this.fatiaND.precisaUpdate = true;
     }
 }
