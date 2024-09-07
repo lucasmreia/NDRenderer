@@ -342,12 +342,17 @@ export default class MainCena {
     }
     //console.log(geometria);
     //Geometria inicial
+    console.log("Gerando Objetos");
     this.NDObj = new ND_Object(geometria);
+    console.log("Gerando Cameras");
     this.NDCams = new ND_Cameras(this.NDObj.dimN, this.NDObj.centrodeMassa);
 
     //Corte ND
+    console.log("Gerando corte");
     this.cortador = new ND_Corte(this.NDObj);
+    console.log("Gerando corte2");
     this.corte = this.cortador.get_fatia();
+    console.log("Gerando corte3");
 
     //console.log(this.corte.Mesh);
     

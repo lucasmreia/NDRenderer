@@ -1,4 +1,4 @@
-//import * as THREE from "three";
+import * as THREE from "three";
 
 //import { GUI } from "jsm/libs/lil-gui.module.min.js";
 
@@ -7,6 +7,8 @@ import MainCena from './src/MainCena.js';
 //import ND_Cameras from './src/ND_Cameras.js';
 
 //import * as mathjs from "mathjs";
+
+//let teste = new THREE.PerspectiveCamera();
 
 const test = new MainCena();
 

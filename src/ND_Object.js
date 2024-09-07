@@ -1,5 +1,5 @@
 import * as THREE from "three";
-
+//import * as math from "mathjs";
 
 export default class ND_Object {
     constructor(geometria, Max_Pontos=1){

@@ -1,8 +1,9 @@
-import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND } from "./lib/ND_Transforms.js";
+import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND, inverteLinhasMat } from "./lib/ND_Transforms.js";
 //import ND_AxesHelper from "./ND_AxisHelper.js";
 
 class ND_Camera{
-    constructor(N, raioObj=3){
+    constructor(N, raioObj=3, perspective=true){
+        console.log("Construtor camera ", N, "D");
         this.dimN = N;
         
         this.raioObj = raioObj;
@@ -16,7 +17,7 @@ class ND_Camera{
 
         this.UpdatePos();
 
-        this.direcao = math.multiply(-1, this.position)
+        this.direcao = math.multiply(-1, this.position);
 
         this.precisaUpdate = true
 
@@ -27,11 +28,13 @@ class ND_Camera{
         this.modelViewMatrix = undefined;
         this.projectionModelViewMatrix = undefined;
 
-        this.perspective = true;//Define o tipo de projeção usado
+        this.perspective = perspective;//Define o tipo de projeção usado
 
+        console.log("Criando matriz de projecao");
         this.updateProjectionMatrix();
+        console.log("Matriz de projecao criada");
 
-        this.lookAt(math.zeros(this.dimN), undefined,true);
+        this.lookAt(math.zeros(this.dimN), undefined, true);
         
         //this.updateViewMatrix();
 
@@ -129,6 +132,7 @@ class ND_Camera{
     lookAt(alvo, viewUps = undefined, recalcula = false){
         //console.log(alvo);
         //console.log(this.position);
+        console.log("Entrou no LookAt");
         let direcao = math.subtract(alvo, this.position);
 
         //console.log("lookAt!");
@@ -149,6 +153,7 @@ class ND_Camera{
             Ups = viewUps;
         }
 
+        console.log("ViewUps Calculado");
 
         const comprimentoDirecao = math.norm(direcao);
         if (comprimentoDirecao < 1e-6){
@@ -181,39 +186,70 @@ class ND_Camera{
         //let ortogonal = VetorOrtogonal(mat);
         //console.log(mat);
         //console.log("determinante");
+        /*
         const determinante = math.det(math.concat(mat, [VetorOrtogonal(mat)], 0));
         //console.log(determinante);
         if (determinante == 0){
             throw new Error("ViewUps e Vetor direcao sao linearmente dependentes");
         }
+        */
         
         //console.log("lookAtMat");
-        let lookAtMat = math.zeros(this.dimN, this.dimN);
+        console.log("inicio calculo lookAtMatrix");
+        
+        /*
+        let lookAtMat1 = math.zeros(this.dimN, this.dimN);
         
         //console.log(lookAtMat);
         //console.log(direcao);
-        const indice = math.index(this.dimN-1, math.range(0, this.dimN));
-        lookAtMat = math.subset(lookAtMat, indice, direcao);
+        let indice = math.index(this.dimN-1, math.range(0, this.dimN));
+        lookAtMat1 = math.subset(lookAtMat1, indice, direcao);
         //console.log(lookAtMat);
         //console.log("inloop");
-
         //Calculo base projetiva "LookAtMatrix"
+        
         for (var i = 0; i < this.dimN-1; i++){
+            console.log("dim", i);
             //Reescrever com novo subset q aceita index vazio
             if (i<this.dimN-2){
                 const subUps = math.subset(Ups, math.index(math.range(i, this.dimN-2), math.range(0, this.dimN)));
                 //console.log(subUps);
                 //console.log(math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
-                const subLookAt = math.subset(lookAtMat, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
+                const subLookAt = math.subset(lookAtMat1, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
                 mat = math.concat(subUps, subLookAt, 0);
             } else {
-                mat = math.subset(lookAtMat, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
+                mat = math.subset(lookAtMat1, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
             }
-            const vetOrtogonal = VetorOrtogonal(mat)
+            console.log("inicio vetorOrtogonal");
+            const vetOrtogonal = VetorOrtogonal(mat);
+            console.log("final vetorOrtogonal");
             const vetOrtogonalnorm = math.divide(vetOrtogonal, math.norm(vetOrtogonal));
-            lookAtMat = math.subset(lookAtMat, math.index(this.dimN-i-2, math.range(0, this.dimN)), vetOrtogonalnorm);
+            lookAtMat1 = math.subset(lookAtMat1, math.index(this.dimN-i-2, math.range(0, this.dimN)), vetOrtogonalnorm);
         }
+        */
         
+        let lookAtMat = math.identity(this.dimN, this.dimN);
+
+        let indice = math.index(math.range(0, this.dimN), 0);
+        lookAtMat = math.subset(lookAtMat, indice, direcao);
+
+        console.log(lookAtMat);
+
+        lookAtMat = math.qr(lookAtMat).Q;
+
+        console.log(direcao);
+        console.log(math.subset(lookAtMat, indice));
+        //if (math.multiply(direcao, math.subset(lookAtMat, indice))<0){
+        //    lookAtMat = math.multiply(-1, lookAtMat);
+        //}
+
+        lookAtMat = inverteLinhasMat(math.transpose(lookAtMat), this.dimN);
+        
+
+        console.log("calculou lookAtMatrix");
+        
+        //console.log(lookAtMat1);
+        console.log(lookAtMat);
 
         this.lookAtMatrix = lookAtMat;//math.identity(this.dimN);
 
@@ -238,7 +274,8 @@ export default class ND_Cameras{
             //const pos = Array.from({ length: i-1 }, () => 0);
             //pos[i-2] = 3;
             //pos = [0, 0, ..., 0]
-            let camera = new ND_Camera(i);
+            let camera = new ND_Camera(i, 3, (i==4));
+            console.log(`criando camera ${camera.dimN}D`);
             camera.lookAt(math.zeros(i));
             this.cameras.push(camera);
         }
@@ -258,6 +295,7 @@ export default class ND_Cameras{
                     let pnts = ndObj.geometria.vertices;
                     //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
                     for (let camera of this.cameras){
+                        console.log(`Projetando camera ${camera.dimN}D`);
                         //adiciona coordenadas homogenias
                         const size = math.size(pnts).valueOf();
                         let pntsH = math.resize(pnts, [size[0], size[1]+1], 1);
@@ -269,7 +307,7 @@ export default class ND_Cameras{
                         //profundidades = pntsHArray.map();
 
                         pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
-                        
+                        console.log(pnts)
                         //console.log(projetados);
                         //console.log('projetou');
                         

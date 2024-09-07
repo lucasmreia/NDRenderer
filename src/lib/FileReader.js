@@ -164,7 +164,6 @@ export function readPOL(conteudo) {
     let num_nmkfaces_original = Array(N - K).fill(0);
 
     for (let hcubo of hcubos) {
-
         for (let vertice of hcubo.vertices){
             //console.log(verts_dic.has(vertice));
             if (!verts_dic.has(vertice)){
@@ -201,6 +200,6 @@ export function readPOL(conteudo) {
         vertices: vertices,
         faces: nmkfaces,
     };
-
+    console.log(geometria);
     return geometria;
 };
