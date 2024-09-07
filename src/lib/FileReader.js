@@ -1,5 +1,5 @@
 //Recebe o conteudo de um .NDP e retorna sua geometria
-export function readNDP(conteudo) {
+function readNDP(conteudo) {
     const lines = conteudo.split("\n")
     .filter((linha) => linha.length>0);
     //lines.forEach(line => console.log(line));
@@ -105,7 +105,7 @@ function get_indice_face(verts_dic,
 }
 
 //Recebe o conteudo de um .POL e retorna sua geometria
-export function readPOL(conteudo) {
+function readPOL(conteudo) {
     const lines = conteudo.split("\n");
 
     let [N, K] = lines[0].split(" ")

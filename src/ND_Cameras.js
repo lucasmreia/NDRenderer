@@ -1,4 +1,4 @@
-import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND, inverteLinhasMat } from "./lib/ND_Transforms.js";
+//import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND, inverteLinhasMat } from "./lib/ND_Transforms.js";
 //import ND_AxesHelper from "./ND_AxisHelper.js";
 
 class ND_Camera{
@@ -265,7 +265,7 @@ class ND_Camera{
     }
 }
 
-export default class ND_Cameras{
+class ND_Cameras{
     constructor(N){
         this.dimN = N;
         

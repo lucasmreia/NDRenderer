@@ -1,13 +1,13 @@
-import * as THREE from "three";
-import { OrbitControls } from "jsm/controls/OrbitControls.js";
-import Stats from 'jsm/libs/stats.module.js';
-import { GUI } from "jsm/libs/lil-gui.module.min.js";
+//import * as THREE from "three";
+//import { OrbitControls } from "jsm/controls/OrbitControls.js";
+//import Stats from 'jsm/libs/stats.module.js';
+//import { GUI } from "jsm/libs/lil-gui.module.min.js";
 
-import { readNDP, readPOL } from "./lib/FileReader.js";
+//import { readNDP, readPOL } from "./lib/FileReader.js";
 
-import ND_Object from './ND_Object.js';
-import ND_Cameras from './ND_Cameras.js';
-import ND_Corte from './ND_Corte.js';
+//import ND_Object from './ND_Object.js';
+//import ND_Cameras from './ND_Cameras.js';
+//import ND_Corte from './ND_Corte.js';
 
 //import ND_AxesHelper from "./ND_AxisHelper.js";
 
@@ -105,7 +105,7 @@ const conteudohcubo = `4 4
  0 1 2 3 4 5 6 7`
 
 
-export default class MainCena {
+class MainCena {
   constructor() {
     // NOTE: Core components to initialize Three.js app.
     this.scene = undefined;
@@ -173,7 +173,7 @@ export default class MainCena {
     
     //Tools
     this.clock = new THREE.Clock();
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.stats = Stats();
     document.body.appendChild(this.stats.dom);
 
@@ -186,7 +186,7 @@ export default class MainCena {
   
 
     //GUI
-    this.gui = new GUI();
+    this.gui = new dat.GUI();
 
     //this.scene.background = new THREE.Color(0x654321);
     this.pastaControles = this.gui.addFolder('Helpers');
@@ -315,17 +315,17 @@ export default class MainCena {
   ChangeViewedObj(conteudo, ehNDP) {
     //Remove GUI das cameras anterior
     if (this.pastaCameras != undefined){
-      this.pastaCameras.destroy();
+      this.gui.removeFolder(this.pastaCameras);
     };
 
     //Remove GUI da geometria anterior
     if (this.pastaGeometria != undefined){
-      this.pastaGeometria.destroy();
+      this.gui.removeFolder(this.pastaGeometria);
     };
 
     //Remove GUI do corte anterior
     if (this.pastaCorte != undefined){
-      this.pastaCorte.destroy();
+      this.gui.removeFolder(this.pastaCorte);
     };
 
     //Remove Malha do Objeto anterior

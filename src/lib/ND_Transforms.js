@@ -1,6 +1,6 @@
 
 
-export function NDTranslacao(N, pos) {
+function NDTranslacao(N, pos) {
     //Gera matrix transalcao de dimencao N
     //pos deve ser array de dimencao 1
     const mat = math.identity(N+1);
@@ -8,7 +8,7 @@ export function NDTranslacao(N, pos) {
     return mat.subset(indice, pos);
 }
 
-export function NDEscala(N, escalar) {
+function NDEscala(N, escalar) {
   //Gera matrix escala de dimencao N
   //escalar deve ser escalar kkkk
   const mat = math.multiply(math.identity(N+1), escalar);
@@ -59,7 +59,7 @@ function removeColuna2(matrix, index) {
     return math.concat(a, b);
 }
 
-export function VetorOrtogonal(vecs) {
+function VetorOrtogonal(vecs) {
     //Recebe uma matriz N-1xN
     //Retorna um vetor em RN ortogonal as N-1 linhas da matriz.
     //Gera resultado errado se as linhas da matriz forem LD"""
@@ -81,7 +81,7 @@ export function VetorOrtogonal(vecs) {
     return vecOrtogonal;
 }
 
-export function inverteLinhasMat(mat, N){
+function inverteLinhasMat(mat, N){
   const indice = math.index(N-1, math.range(0, N));
   let invertida = math.subset(mat, indice);
   for (let i=1; i<N; i++){
@@ -92,7 +92,7 @@ export function inverteLinhasMat(mat, N){
   return invertida;
 }
 
-export function matrizRotacaoND(N, x, y, theta){
+function matrizRotacaoND(N, x, y, theta){
     const mat = math.identity(N);
     const cos = math.cos(theta);
     const sin = math.sin(theta);
@@ -103,10 +103,10 @@ export function matrizRotacaoND(N, x, y, theta){
     return mat;
 }
 
-export function norm(vec){
+function norm(vec){
     return math.sqrt(vec.map(function(num) { 
         return num * num;
     }).reduce((soma, a) => soma + a, 0));
 }
 
-//export NDTranslacao;
+//NDTranslacao;

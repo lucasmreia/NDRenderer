@@ -1,7 +1,7 @@
-import ND_Object from './ND_Object.js';
+//import ND_Object from './ND_Object.js';
 
 
-export default class ND_Corte{
+class ND_Corte{
     constructor(NDObj){
         this.NDObj = NDObj;
 
