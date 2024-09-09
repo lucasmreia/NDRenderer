@@ -93,6 +93,7 @@ function get_indice_face(verts_dic,
         return indices;
     }
     const dic = nmkfaces_dic[dim-2];
+    //console.log(face);
     let indices = face.map((t) => {
         return dic.get(get_indice_face(verts_dic,
                                 nmkfaces_dic,
@@ -120,22 +121,33 @@ function readPOL(conteudo) {
     for (let i=0; i<lines.length; i++){
         if (lines[i].length==0){
             //console.log(i);
-            let verts = [];
-            let nmkfaces = [];
-                if (lines[i+1] == "-1"){ break };
 
-                let numVrts = Number(lines[i+3]);
+            let inicio = i+3;
+            if (lines[i+1].trim() == "-1"){ break };
+
+            let componentesConexas = Number(lines[i+2].trim());
+            /*if (lines[i+2].trim() != "1") { 
+                console.log("mais componentes conexos");
+                console.log(lines[i+1]);
+                console.log(lines[i+2]);
+            };*/
+            //console.log(componentesConexas);
+            for (let j=0; j<componentesConexas; j++){
+                let verts = [];
+                let nmkfaces = [];
+
+                let numVrts = Number(lines[inicio]);
                 for (let j=0; j<numVrts; j++){
-                    verts.push(lines[i+4+j]
+                    verts.push(lines[inicio+1+j]
                         .split(" ")
                         .filter((linha) => linha.length>0)
                         .slice(K+1)
                         .map((num) => Number(num)));
                 }
                 //console.log(verts);
-                let lin_num_arestas = i+3+numVrts+1;
+                let lin_num_arestas = inicio+numVrts+1;
                 let num_arestas;
-                while (lines[lin_num_arestas].length !=0) {
+                for (let j=0; j<N-K; j++){  //(lines[lin_num_arestas].length !=0) {
                     let arestas = [];
                     num_arestas = Number(lines[lin_num_arestas]);
                     for (let j=0; j<num_arestas; j++){
@@ -147,10 +159,12 @@ function readPOL(conteudo) {
                     lin_num_arestas += num_arestas + 1
                     nmkfaces.push(arestas)
                 }
+                inicio = lin_num_arestas;
             
                 hcubos.push({vertices :verts, faces: nmkfaces});
-
+            
                 //console.log({vertices :verts, faces: arestas});
+            }
         }
     }
 
@@ -176,6 +190,7 @@ function readPOL(conteudo) {
         let dim = 0
         for (let faces of hcubo.faces){
             for (let aresta of faces) {
+                //console.log(aresta);
                 aresta = get_indice_face(verts_dic, nmkfaces_dic, hcubo, aresta, dim+1)
                 //console.log(aresta);
                 if (!nmkfaces_dic[dim].has(aresta)) {

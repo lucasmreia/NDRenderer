@@ -149,7 +149,11 @@ class MainCena {
 
   initialize() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x123456);
+    let backgroundColor = {
+      cor: "#123456"
+    };
+    this.scene.background = new THREE.Color( backgroundColor.cor );
+
 
     //Camera 3D
     this.camera = new THREE.PerspectiveCamera(
@@ -190,7 +194,12 @@ class MainCena {
 
     //this.scene.background = new THREE.Color(0x654321);
     this.pastaControles = this.gui.addFolder('Helpers');
-    this.pastaControles.addColor(this.scene, 'background').name('Background Color');
+    //let colorControler = 
+    this.pastaControles.addColor(backgroundColor, 'cor')
+        .name('Background Color')
+        .onChange( () => {
+          this.scene.background.set( backgroundColor.cor );
+        });
     this.pastaControles.add(this.axesHelper, 'visible').name('Axis Helper');
     var params = {
       loadFile : function() { 
@@ -342,17 +351,12 @@ class MainCena {
     }
     //console.log(geometria);
     //Geometria inicial
-    console.log("Gerando Objetos");
     this.NDObj = new ND_Object(geometria);
-    console.log("Gerando Cameras");
     this.NDCams = new ND_Cameras(this.NDObj.dimN, this.NDObj.centrodeMassa);
 
     //Corte ND
-    console.log("Gerando corte");
     this.cortador = new ND_Corte(this.NDObj);
-    console.log("Gerando corte2");
     this.corte = this.cortador.get_fatia();
-    console.log("Gerando corte3");
 
     //console.log(this.corte.Mesh);
     
@@ -434,13 +438,13 @@ class MainCena {
       
       //Seleciona coordenadas hyperpolares
       camera.esfericas.forEach((value, index) => {
-        let inter1 = -math.pi * 0.5 + 1e-6;
-        let inter2 =  math.pi * 0.5 - 1e-6;
+        let inter1 = -math.pi * 0.5 + 1e-3;
+        let inter2 =  math.pi * 0.5 - 1e-3;
         if (index == camera.dimN-2){
           inter1 = 0;
           inter2 = math.pi * 2;
         }
-        cameraIDFolder.add(camera.esfericas, index, inter1, inter2).name(`Phi${index+1}`).onChange(() => {camera.UpdatePos();});
+        cameraIDFolder.add(camera.esfericas, index, inter1, inter2).name(`Phi${index+1}`).step(0.0001).onChange(() => {camera.UpdatePos();});
       });
     });
   }

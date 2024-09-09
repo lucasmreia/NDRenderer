@@ -3,7 +3,7 @@
 
 class ND_Camera{
     constructor(N, raioObj=3, perspective=true){
-        console.log("Construtor camera ", N, "D");
+        //console.log("Construtor camera ", N, "D");
         this.dimN = N;
         
         this.raioObj = raioObj;
@@ -30,9 +30,9 @@ class ND_Camera{
 
         this.perspective = perspective;//Define o tipo de projeção usado
 
-        console.log("Criando matriz de projecao");
+        //console.log("Criando matriz de projecao");
         this.updateProjectionMatrix();
-        console.log("Matriz de projecao criada");
+        //console.log("Matriz de projecao criada");
 
         this.lookAt(math.zeros(this.dimN), undefined, true);
         
@@ -132,7 +132,7 @@ class ND_Camera{
     lookAt(alvo, viewUps = undefined, recalcula = false){
         //console.log(alvo);
         //console.log(this.position);
-        console.log("Entrou no LookAt");
+        //console.log("Entrou no LookAt");
         let direcao = math.subtract(alvo, this.position);
 
         //console.log("lookAt!");
@@ -153,7 +153,7 @@ class ND_Camera{
             Ups = viewUps;
         }
 
-        console.log("ViewUps Calculado");
+        //console.log("ViewUps Calculado");
 
         const comprimentoDirecao = math.norm(direcao);
         if (comprimentoDirecao < 1e-6){
@@ -195,9 +195,9 @@ class ND_Camera{
         */
         
         //console.log("lookAtMat");
-        console.log("inicio calculo lookAtMatrix");
+        //console.log("inicio calculo lookAtMatrix");
         
-        /*
+        
         let lookAtMat1 = math.zeros(this.dimN, this.dimN);
         
         //console.log(lookAtMat);
@@ -209,7 +209,7 @@ class ND_Camera{
         //Calculo base projetiva "LookAtMatrix"
         
         for (var i = 0; i < this.dimN-1; i++){
-            console.log("dim", i);
+            //console.log("dim", i);
             //Reescrever com novo subset q aceita index vazio
             if (i<this.dimN-2){
                 const subUps = math.subset(Ups, math.index(math.range(i, this.dimN-2), math.range(0, this.dimN)));
@@ -220,14 +220,14 @@ class ND_Camera{
             } else {
                 mat = math.subset(lookAtMat1, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
             }
-            console.log("inicio vetorOrtogonal");
+            //console.log("inicio vetorOrtogonal");
             const vetOrtogonal = VetorOrtogonal(mat);
-            console.log("final vetorOrtogonal");
+            //console.log("final vetorOrtogonal");
             const vetOrtogonalnorm = math.divide(vetOrtogonal, math.norm(vetOrtogonal));
             lookAtMat1 = math.subset(lookAtMat1, math.index(this.dimN-i-2, math.range(0, this.dimN)), vetOrtogonalnorm);
         }
-        */
         
+        /*
         let lookAtMat = math.identity(this.dimN, this.dimN);
 
         let indice = math.index(math.range(0, this.dimN), 0);
@@ -244,14 +244,14 @@ class ND_Camera{
         //}
 
         lookAtMat = inverteLinhasMat(math.transpose(lookAtMat), this.dimN);
-        
+        */
 
-        console.log("calculou lookAtMatrix");
+        //console.log("calculou lookAtMatrix");
         
         //console.log(lookAtMat1);
-        console.log(lookAtMat);
+        //console.log(lookAtMat);
 
-        this.lookAtMatrix = lookAtMat;//math.identity(this.dimN);
+        this.lookAtMatrix = lookAtMat1;//math.identity(this.dimN);
 
         this.updateViewMatrix();
 
@@ -275,7 +275,7 @@ class ND_Cameras{
             //pos[i-2] = 3;
             //pos = [0, 0, ..., 0]
             let camera = new ND_Camera(i, 3, (i==4));
-            console.log(`criando camera ${camera.dimN}D`);
+            //console.log(`criando camera ${camera.dimN}D`);
             camera.lookAt(math.zeros(i));
             this.cameras.push(camera);
         }
@@ -295,7 +295,7 @@ class ND_Cameras{
                     let pnts = ndObj.geometria.vertices;
                     //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
                     for (let camera of this.cameras){
-                        console.log(`Projetando camera ${camera.dimN}D`);
+                        //console.log(`Projetando camera ${camera.dimN}D`);
                         //adiciona coordenadas homogenias
                         const size = math.size(pnts).valueOf();
                         let pntsH = math.resize(pnts, [size[0], size[1]+1], 1);
@@ -307,7 +307,7 @@ class ND_Cameras{
                         //profundidades = pntsHArray.map();
 
                         pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
-                        console.log(pnts)
+                        //console.log(pnts)
                         //console.log(projetados);
                         //console.log('projetou');
                         
