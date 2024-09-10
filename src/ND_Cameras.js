@@ -15,6 +15,8 @@ class ND_Camera{
         this.FoV = 45;
         this.raio = 3;
 
+        this.alvo = Array(this.dimN).fill(0);
+
         this.UpdatePos();
 
         this.direcao = math.multiply(-1, this.position);
@@ -61,7 +63,7 @@ class ND_Camera{
             }
         }
         this.position = math.multiply(math.matrix(pos), this.raio);
-        
+        this.position = math.add(this.position, this.alvo);
     }
 
     /*UpdatePos(uns){
@@ -129,7 +131,10 @@ class ND_Camera{
         }
     }
 
-    lookAt(alvo, viewUps = undefined, recalcula = false){
+    lookAt(alvo = undefined, viewUps = undefined, recalcula = false){
+        if ( alvo === undefined ){
+            alvo = this.alvo;
+        }
         //console.log(alvo);
         //console.log(this.position);
         //console.log("Entrou no LookAt");
@@ -282,16 +287,25 @@ class ND_Cameras{
     }
 
     lookAtOrigem(recalcula = false){
-        this.cameras.forEach((camera) => {camera.lookAt(math.zeros(camera.dimN), undefined, recalcula)});
+        this.cameras.forEach((camera) => {camera.lookAt(undefined, undefined, recalcula)});
+    }
+
+    centraPrimeira(alvo){
+        //Move a primeira camera e aponta ela na direção desejada
+        this.cameras[0].alvo = alvo;
+        this.cameras[0].UpdatePos();
+        this.cameras[0].lookAt(undefined, undefined, true);
+
     }
 
     projetaObjetos(ndObjs){
         //console.log(pnts);
         ///const size = math.size(pnts).valueOf();
         ///const cols = size[1];
-        if (this.cameras.some(camera => camera.precisaUpdate) || ndObjs.some(obj => obj.precisaUpdate)){
-            for (const ndObj of ndObjs) {
-                if (ndObj.Mesh.visible && ndObj.geometria.vertices.length > 0) {
+        
+        for (const ndObj of ndObjs) {
+            if (this.cameras.some(camera => camera.precisaUpdate) || ndObj.precisaUpdate){
+                if ( ndObj.Mesh.visible && ndObj.geometria.vertices.length > 0 ) {
                     let pnts = ndObj.geometria.vertices;
                     //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
                     for (let camera of this.cameras){

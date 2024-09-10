@@ -364,6 +364,7 @@ class MainCena {
     this.scene.add(this.NDObj.Mesh);
     this.scene.add(this.corte.Mesh);
     this.NDCams.projetaObjetos([this.NDObj, this.corte]);
+    this.NDCams.centraPrimeira(this.NDObj.centrodeMassa);// Move centro de massa da geometria para origem
     this.NDCams.lookAtOrigem();
 
 
@@ -399,6 +400,7 @@ class MainCena {
     this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry').onChange(() => this.corte.precisaUpdate = true);
     this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.minmax.min, this.cortador.minmax.max)
                    .name('Cut position')
+                   .step(0.001)
                    .onChange(() =>  {this.cortador.corte()
                     //console.log(this.cortador.localDoCorte);
                     //console.log(this.corte);
