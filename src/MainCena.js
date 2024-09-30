@@ -150,7 +150,8 @@ class MainCena {
   initialize() {
     this.scene = new THREE.Scene();
     let backgroundColor = {
-      cor: "#123456"
+      cor: "#123456",
+      transparent: false
     };
     this.scene.background = new THREE.Color( backgroundColor.cor );
 
@@ -170,6 +171,7 @@ class MainCena {
     this.renderer = new THREE.WebGLRenderer({
       //canvas,
       antialias: true,
+      alpha: true
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -192,15 +194,25 @@ class MainCena {
     //GUI
     this.gui = new dat.GUI();
 
-    //this.scene.background = new THREE.Color(0x654321);
     this.pastaControles = this.gui.addFolder('Helpers');
-    //let colorControler = 
+
     this.pastaControles.addColor(backgroundColor, 'cor')
         .name('Background Color')
+        .listen()
         .onChange( () => {
           this.scene.background.set( backgroundColor.cor );
         });
+
+    this.pastaControles.add(backgroundColor, 'transparent')
+    .name("Set Background Transparent")
+    .onChange( () => {
+      this.renderer.setClearColor( 0x000000, 0);
+      backgroundColor.cor = "#000000";
+      this.scene.background.set( backgroundColor.cor );
+    });
+
     this.pastaControles.add(this.axesHelper, 'visible').name('Axis Helper');
+
     var params = {
       loadFile : function() { 
         document.getElementById('fileInput').click();
@@ -208,6 +220,28 @@ class MainCena {
     };
 
     this.pastaControles.add(params, 'loadFile').name('Load Geometry');
+
+
+    let renderer = this.renderer;
+    let scene = this.scene;
+    let camera = this.camera;
+    document.getElementById('button').addEventListener('click', function () {
+      renderer.preserveDrawingBuffer = true;
+      renderer.render(scene, camera);
+      const image = renderer.domElement.toDataURL('image/png');
+      renderer.preserveDrawingBuffer = false;
+      const a = document.createElement('a');
+      a.setAttribute('download', 'screenshot.png');
+      a.setAttribute('href', image);
+      a.click();
+    });
+    let ScreenShotParams = {
+      take: function() {
+        document.getElementById('button').click();
+      }
+    };
+    this.pastaControles.add(ScreenShotParams, 'take')
+      .name('Take ScreenShot');
 
     //const gridHelper = new THREE.GridHelper( 10, 100 );
     //this.scene.add( gridHelper );
@@ -288,6 +322,20 @@ class MainCena {
     // this.uniforms.u_time.value += this.clock.getDelta();
     this.renderer.render(this.scene, this.camera);
   }
+
+  /*takeScreenShot() {
+    //let strMime = "";
+    //let img = new Image();
+    //img.src = renderer.domElement.toDataURL();
+    this.renderer.preserveDrawingBuffer = true;
+    this.renderer.render(this.scene, this.camera);
+    const image = this.renderer.domElement.toDataURL('image/png');
+    this.renderer.preserveDrawingBuffer = false;
+    const a = document.createElement('a');
+    a.setAttribute('download', 'ScreenShoot.png');
+    a.setAttribute('href', image);
+    a.click();
+  }*/
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -373,7 +421,9 @@ class MainCena {
     //this.scene.add(this.axesHelperND.Mesh);
     //this.NDCams.projetaObjetos(this.NDObj);
 
-    //GUI da geometria
+    ////////////////////
+    //GUI da geometria//
+    ////////////////////
     this.pastaGeometria = this.gui.addFolder('Geometry');
 
     //GUI Seletor de arquivos
@@ -385,29 +435,60 @@ class MainCena {
     //this.pastaGeometria.add(params, 'loadFile').name('Load Geometry');
 
     //Toggle visibilidade
-    this.pastaGeometria.add(this.NDObj.Mesh, 'visible').name('Render Geomerty').onChange(() => this.corte.precisaUpdate = true);
+    this.pastaGeometria.add(this.NDObj.Mesh, 'visible')
+                       .name('Render Geomerty')
+                       .onChange(() => this.NDObj.precisaUpdate = true);
 
-    //GUI do mapa de cores
-    this.pastaMapa_Cores = this.pastaGeometria.addFolder('Color Map');
-    this.pastaMapa_Cores.addColor(this.NDObj, 'cor1').name('Color 1').onChange(() => this.NDObj.updateColors());
-    this.pastaMapa_Cores.addColor(this.NDObj, 'cor2').name('Color 2').onChange(() => this.NDObj.updateColors());
-    this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1).step(1).name('Colored coordenate').onChange(() => this.NDObj.updateColors());
-    this.pastaMapa_Cores.close();
+    //GUI mapa de cores da geometria
+    this.pastaMapaCores = this.pastaGeometria.addFolder('Color Map');
+    
+    this.NDObj.materialND.gera_GUI(this.pastaMapaCores);
+    /*
+    this.pastaMapa_Cores.addColor(this.NDObj.cor1, 'cor' )
+                        .name('Color 1')
+                        .onChange(() => this.NDObj.updateColors());
+    this.pastaMapa_Cores.addColor(this.NDObj.cor2, 'cor' )
+                        .name('Color 2')
+                        .onChange(() => this.NDObj.updateColors());
+    this.pastaMapa_Cores.add(this.NDObj, 'coordColorida', 0, this.NDObj.dimN-1)
+                        .name('Colored coordenate')
+                        .step(1)
+                        .onChange(() => this.NDObj.updateColors());*/
+    
+    this.pastaMapaCores.close();
     this.pastaGeometria.close();
 
-    //GUI corte dimencional
+    /////////////////////////
+    //GUI corte dimensional//
+    /////////////////////////
     this.pastaCorte = this.gui.addFolder('Dimensional Cut');
     this.pastaCorte.add(this.corte.Mesh, 'visible').name('Render Cut Geometry').onChange(() => this.corte.precisaUpdate = true);
-    this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.minmax.min, this.cortador.minmax.max)
+    this.pastaCorte.add(this.cortador, 'localDoCorte', this.cortador.MinMax.min, this.cortador.MinMax.max)
                    .name('Cut position')
-                   .step(0.001)
+                   .step(0.000_1)
                    .onChange(() =>  {this.cortador.corte()
                     //console.log(this.cortador.localDoCorte);
                     //console.log(this.corte);
                    });
+    this.pastaCorte.add(this.cortador, 'coordCorte', 0, this.cortador.dimN-1)
+                   .name('Cut Coord')
+                   .step(1)
+                   .onChange(() => {this.cortador.corte()});
+    
+    this.pastaCorte_MapaCores = this.pastaCorte.addFolder('Cut Color Map');
+    
+    this.pastaCorte_MapaCores.add(this.corte, 'destacado')
+                             .name('Highlight Cut')
+                             .onChange(()=>{this.corte.destacarObjeto()});
+    this.corte.materialND.gera_GUI(this.pastaCorte_MapaCores);
+
+    this.pastaCorte_MapaCores.close()
+
     this.pastaCorte.close();
 
-    //GUI das cameras
+    /////////////////
+    ///GUI cameras///
+    /////////////////
     this.pastaCameras = this.gui.addFolder('Cameras');
     this.pastaCameras.close();
 

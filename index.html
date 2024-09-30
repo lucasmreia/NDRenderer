@@ -14,8 +14,9 @@
     </script-->
     <!--"mathjs": "https://cdn.jsdelivr.net/npm/mathjs/lib/browser/math.js"-->
 </head>
-<body>
-    <input id="fileInput" type="file" style="visibility:hidden" />
+<body style="margin:0px; overflow:hidden">
+    <input id="fileInput" type="file" style="visibility:hidden; display:none;" />
+    <button id="button" style="visibility: hidden">Download Screenshot</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.1.1/math.min.js"></script>
     <script src="src/lib_three/three.min.js"></script> <!-- Inclue o Three.js -->
@@ -25,6 +26,7 @@
     
     <script src="src/lib/ND_Transforms.js"></script>
     <script src="src/lib/FileReader.js"></script>
+    <script src="src/ND_Material.js"></script>
     <script src="src/ND_Object.js"></script>
     <script src="src/ND_Corte.js"></script>
     <script src="src/ND_Cameras.js"></script>

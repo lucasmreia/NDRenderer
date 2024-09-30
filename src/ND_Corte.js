@@ -12,11 +12,14 @@ class ND_Corte{
         this.nmkfacesObj = NDObj.geometria.faces;
         this.facesObj = NDObj.geometria.faces[1];
 
-        this.minmax = NDObj.coordsMinMax[NDObj.coordsMinMax.length-1];
-        this.localDoCorte = (this.minmax.min + this.minmax.max) * 0.5;
+        this.MinMax = NDObj.MinMax;
+        //NDObj.coordsMinMax[NDObj.coordsMinMax.length-1];
+        this.localDoCorte = (this.MinMax.min + this.MinMax.max) * 0.5;
+
+        this.coordCorte = this.dimN-1;
 
         let geometria = this.corta_ultima_coord();
-        this.fatiaND = new ND_Object(geometria, this.NDObj.geometria.faces[0].length);
+        this.fatiaND = new ND_Object(geometria, this.NDObj.geometria.faces[0].length, { cor:'#ff0000' }, { cor:'#000000' });
 
         this.fatiaND.Mesh.visible = false;
     }
@@ -26,7 +29,7 @@ class ND_Corte{
     }
 
     corta_ultima_coord(){
-        if (this.localDoCorte == this.minmax.min || this.localDoCorte == this.minmax.max) {
+        if (this.localDoCorte < this.MinMax.min || this.localDoCorte > this.MinMax.max) {
             return {
                 N: this.dimN,
                 K: 0,//this.dimN-nmknovasFaces.length,
@@ -40,8 +43,10 @@ class ND_Corte{
         for (const [i, aresta] of this.arestasObj.entries()){
             const vertA = this.verticesObj[aresta[0]];
             const vertB = this.verticesObj[aresta[1]];
-            if ((vertA[this.dimN-1] - this.localDoCorte) * (vertB[this.dimN-1] - this.localDoCorte) < 0){
-                const valInterpol = (vertA[this.dimN-1] - this.localDoCorte)/(vertA[this.dimN-1] - vertB[this.dimN-1])
+            //if ((vertA[this.dimN-1] - this.localDoCorte) * (vertB[this.dimN-1] - this.localDoCorte) < 0){
+            if ((vertA[this.coordCorte] - this.localDoCorte) * (vertB[this.coordCorte] - this.localDoCorte) < 0){
+                //const valInterpol = (vertA[this.dimN-1] - this.localDoCorte)/(vertA[this.dimN-1] - vertB[this.dimN-1]);
+                const valInterpol = (vertA[this.coordCorte] - this.localDoCorte)/(vertA[this.coordCorte] - vertB[this.coordCorte]);
                 const novoVertice = math.add(vertA, math.multiply(math.subtract(vertB, vertA), valInterpol));
                 arestasCortadas.set(i, novosVertices.length);
                 novosVertices.push(novoVertice);

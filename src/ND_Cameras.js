@@ -304,6 +304,7 @@ class ND_Cameras{
         ///const cols = size[1];
         
         for (const ndObj of ndObjs) {
+            //console.log(this.cameras.some(camera => camera.precisaUpdate));
             if (this.cameras.some(camera => camera.precisaUpdate) || ndObj.precisaUpdate){
                 if ( ndObj.Mesh.visible && ndObj.geometria.vertices.length > 0 ) {
                     let pnts = ndObj.geometria.vertices;
@@ -331,13 +332,15 @@ class ND_Cameras{
                     //console.log(pnts);
                     //console.log(l);
                     ndObj.updateVertices(pnts);
-
+                } else {
+                    ndObj.updateVertices([]);
                 }
             }
             //console.log("Projetou!")
-            this.cameras.forEach((camera) => camera.precisaUpdate=false);
-            
-        } //else {
+        } 
+        this.cameras.forEach((camera) => camera.precisaUpdate=false);
+        
+        //else {
           //  ndObj.updateVertices(projetados[0]);
         //}
     }

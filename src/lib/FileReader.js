@@ -1,3 +1,7 @@
+const perturbacao = 1e-9;//Tamanho da perturbaçao aplicada a cada vertice
+
+
+
 //Recebe o conteudo de um .NDP e retorna sua geometria
 function readNDP(conteudo) {
     const lines = conteudo.split("\n")
@@ -8,19 +12,18 @@ function readNDP(conteudo) {
     let N = Number(lines[0][0]);
     let K = Number(lines[0][2]);
 
-    //console.log(N, K);
-
+    //Le Vertices
     let nVrts = Number(lines[1]);
-
     let verts = [];
 
     for (let i=0; i<nVrts; i++){
-        verts.push(lines[2 + i].split(" ").filter((linha) => linha.length>0).map((num) => Number(num)));
-        //console.log(verts[i]);
+        verts.push(lines[2 + i]
+            .split(" ")
+            .filter((linha) => linha.length>0)
+            .map((num) => Number(num)+Math.random()*perturbacao));
     }
-    //console.log(verts.slice(0, nVrts));
 
-    //console.log(nArestas);
+    //Le (n-k)Faces
     let lin_num_arestas = 2+nVrts;
     let faces = [];
 
@@ -212,9 +215,9 @@ function readPOL(conteudo) {
     let geometria = {
         N: N,
         K: K,
-        vertices: vertices,
+        vertices: vertices.map((vert) => vert.map((coord) => coord + Math.random() * perturbacao)),
         faces: nmkfaces,
     };
-    console.log(geometria);
+    //console.log(geometria);
     return geometria;
 };
