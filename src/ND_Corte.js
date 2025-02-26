@@ -1,120 +1,108 @@
-//import ND_Object from './ND_Object.js';
-
-
-class ND_Corte{
-    constructor(NDObj){
+class ND_Corte {
+    constructor(NDObj) {
         this.NDObj = NDObj;
 
         this.dimN = NDObj.dimN;
 
-        this.verticesObj = NDObj.geometria.vertices;
-        this.arestasObj = NDObj.geometria.faces[0];
-        this.nmkfacesObj = NDObj.geometria.faces;
-        this.facesObj = NDObj.geometria.faces[1];
+        this.verticesObj = NDObj.geometry.vertices;
+        this.nmkfacesObj = NDObj.geometry.faces;
+        this.arestasObj = NDObj.geometry.faces[0];
+        this.facesObj = NDObj.geometry.faces[1];
 
         this.MinMax = NDObj.MinMax;
-        //NDObj.coordsMinMax[NDObj.coordsMinMax.length-1];
-        this.localDoCorte = (this.MinMax.min + this.MinMax.max) * 0.5;
+        this.coordsMinMax = NDObj.coordsMinMax;
 
-        this.coordCorte = this.dimN-1;
+        this.coordCorte = this.dimN - 1;
 
-        let geometria = this.corta_ultima_coord();
-        this.fatiaND = new ND_Object(geometria, this.NDObj.geometria.faces[0].length, { cor:'#ff0000' }, { cor:'#000000' });
+        this.localDoCorte = (this.coordsMinMax[this.coordCorte].min + this.coordsMinMax[this.coordCorte].max) / 2.;
+        // this.localDoCorte = this.coordsMinMax[this.coordCorte].max + 1e-3;
 
-        this.fatiaND.Mesh.visible = false;
+        // We intended to increase the number of edges dynamically, but it didn't work properly.
+        // So we decided to start with a bigger number of edges, and the next calls will be only smaller.
+        // let geometry = this.corta_ultima_coord();
+        // this.fatiaND = new ND_Object(geometry, {cor: '#ff0000'}, {cor: '#000000'}, this.NDObj);
+
+        // Start with the entire geometry, then the sectional cut will always be smaller in the next calls.
+        this.fatiaND = new ND_Object(this.NDObj.geometry, {cor: '#ff0000'}, {cor: '#000000'}, this.NDObj);
+
+        this.fatiaND.visible = false;
+        this.fatiaND.Mesh.visible = true;
+        this.fatiaND.Mesh.children[0].visible = false;
+        this.fatiaND.Mesh.children[1].visible = false;
     }
 
-    get_fatia(){
+    getCut() {
         return this.fatiaND;
     }
 
-    corta_ultima_coord(){
-        if (this.localDoCorte < this.MinMax.min || this.localDoCorte > this.MinMax.max) {
+    corta_ultima_coord() {
+        // If the cut position is outside the valid range, return an empty geometry.
+        if ((this.localDoCorte < this.coordsMinMax[this.coordCorte].min) ||
+            (this.localDoCorte > this.coordsMinMax[this.coordCorte].max)) {
             return {
                 N: this.dimN,
-                K: 0,//this.dimN-nmknovasFaces.length,
+                K: 0,
                 vertices: [],
                 faces: [[]]
-            }
+            };
         }
 
-        let arestasCortadas = new Map();//chaves são os indices das arestas e valores são novo indice
-        let novosVertices = [];
-        for (const [i, aresta] of this.arestasObj.entries()){
+        // First, loop through the edges (from geometry.faces[0]) to find intersections.
+        // 'cutEdges' maps an edge index to the new vertex index.
+        let cutEdges = new Map();
+        let novosVertices = [];  // This will hold the new intersection vertices.
+        for (let i = 0; i < this.arestasObj.length; i++) {
+            const aresta = this.arestasObj[i]; // An edge defined as [indexA, indexB]
             const vertA = this.verticesObj[aresta[0]];
             const vertB = this.verticesObj[aresta[1]];
-            //if ((vertA[this.dimN-1] - this.localDoCorte) * (vertB[this.dimN-1] - this.localDoCorte) < 0){
-            if ((vertA[this.coordCorte] - this.localDoCorte) * (vertB[this.coordCorte] - this.localDoCorte) < 0){
-                //const valInterpol = (vertA[this.dimN-1] - this.localDoCorte)/(vertA[this.dimN-1] - vertB[this.dimN-1]);
-                const valInterpol = (vertA[this.coordCorte] - this.localDoCorte)/(vertA[this.coordCorte] - vertB[this.coordCorte]);
-                const novoVertice = math.add(vertA, math.multiply(math.subtract(vertB, vertA), valInterpol));
-                arestasCortadas.set(i, novosVertices.length);
+            // Check if the edge crosses the cut:
+            if (((vertA[this.coordCorte] - this.localDoCorte) *
+                (vertB[this.coordCorte] - this.localDoCorte)) < 0) {
+                // Compute the interpolation factor.
+                const valInterpol = (this.localDoCorte - vertA[this.coordCorte]) /
+                    (vertB[this.coordCorte] - vertA[this.coordCorte]);
+                // Create the new vertex by interpolating along the edge.
+                let novoVertice = [];
+                for (let j = 0; j < this.dimN; j++) {
+                    novoVertice[j] = vertA[j] + (vertB[j] - vertA[j]) * valInterpol;
+                }
+                // Record the mapping from the original edge index to the new vertex index.
+                cutEdges.set(i, novosVertices.length);
                 novosVertices.push(novoVertice);
             }
         }
 
-        let nmknovasFaces = [];
-        let nmkfacesCortadas = [arestasCortadas].concat(
-                                Array(this.nmkfacesObj.length-1)
-                                .fill(null)
-                                .map(() => new Map()));
-        for (const [j, jfaces] of this.nmkfacesObj.slice(1).entries()){
-            let novasFaces = [];
-            for (const [i, face] of jfaces.entries()){
-                let novaAresta = [];
-                for (const aresta of face){
-                    //console.log(aresta);
-                    //console.log(arestasCortadas.has(aresta));
-                    if (nmkfacesCortadas[j].has(aresta)){
-                        novaAresta.push(nmkfacesCortadas[j].get(aresta));
-                    }
-                    //console.log(novaAresta);
-                }
-                //console.log(novaAresta.length==2);
-                //console.log(novasfaces);
-                if (j==0 && novaAresta.length!=0){ 
-                    console.assert(novaAresta.length == 2);
-                }
-
-                if (j+1<this.nmkfacesObj.length){
-                    if (novaAresta.length > 0){
-                        nmkfacesCortadas[j+1].set(i, novasFaces.length);
-                        novasFaces.push(novaAresta);
-                        //console.log(j, novaAresta);
-                    }
-                }
-
-                //console.log(novasfaces);
-                if (j==0 && (novaAresta.length>2 || novaAresta.length==1)){
-                    console.log("Deu Errado!");
-                    console.log(novaAresta.length);
+        // Next, loop through the face data (from geometry.faces[1], stored in this.facesObj)
+        // to build the new edges (each new edge is a pair of indices into 'novosVertices').
+        let newEdges = [];
+        for (let i = 0; i < this.facesObj.length; i++) {
+            const face = this.facesObj[i]; // 'face' is an array of edge indices.
+            let newEdge = [];
+            for (let j = 0; j < face.length; j++) {
+                const edgeIndex = face[j];
+                if (cutEdges.has(edgeIndex)) {
+                    newEdge.push(cutEdges.get(edgeIndex));
                 }
             }
-            nmknovasFaces.push(novasFaces);
-            //console.log(nmkfacesCortadas);
+            // Only add the new edge if exactly two intersection vertices were found.
+            if (newEdge.length === 2) {
+                newEdges.push(newEdge);
+            }
         }
-        
-        let faces = [];
-        nmkfacesCortadas.forEach(face => faces.push(Array.from(face, ([name, value]) => (value))));
 
-        //console.log(nmknovasFaces);
-        //console.log(nmkfacesCortadas);
-
-        let geometria = {
+        return {
             N: this.dimN,
-            K: 0,//this.dimN-nmknovasFaces.length,
+            K: 0,
             vertices: novosVertices,
-            faces: nmknovasFaces
-        }
-        //console.log(geometria);
-        return geometria;
-    };
+            faces: [newEdges]
+        };
+    }
 
-    corte(){
-        const geometria = this.corta_ultima_coord();
-        //console.log(geometria);
-        this.fatiaND.updateGeometria(geometria);
-        //this.fatiaND.updateVertices(Array(geometria.vertices.length).fill([0, 0, 0]));
-        //this.fatiaND.updateFaces(geometria.faces);
+    corte() {
+        const geometry = this.corta_ultima_coord();
+        //console.log(geometry);
+        this.fatiaND.updateGeometry(geometry);
+        //this.fatiaND.updateVertices(Array(geometry.vertices.length).fill([0, 0, 0]));
+        //this.fatiaND.updateFaces(geometry.faces);
     }
 }

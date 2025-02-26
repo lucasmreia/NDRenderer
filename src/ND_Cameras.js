@@ -1,27 +1,25 @@
-//import { NDTranslacao, NDEscala, VetorOrtogonal, matrizRotacaoND, inverteLinhasMat } from "./lib/ND_Transforms.js";
-//import ND_AxesHelper from "./ND_AxisHelper.js";
-
-class ND_Camera{
-    constructor(N, raioObj=3, perspective=true){
+class ND_Camera {
+    constructor(N, radiusObj = 3, perspective = true) {
         //console.log("Construtor camera ", N, "D");
         this.dimN = N;
-        
-        this.raioObj = raioObj;
+
+        this.radiusObj = radiusObj;
         this.tamAparente = 1;
 
-        this.esfericas = Array(this.dimN-1).fill(0);
-        this.esfericas[N-2] = math.pi;
+        this.spherical = Array(this.dimN - 1).fill(0); // spherical coordinates of the camera (angles at each coordinate).
+        this.radius = 3; // radius of the hyper-sphere where the camera lies.
 
-        this.FoV = 45;
-        this.raio = 3;
+        this.fov = 45;
 
-        this.alvo = Array(this.dimN).fill(0);
+        this.target = Array(this.dimN).fill(0); // target for "look at".
 
         this.UpdatePos();
 
-        this.direcao = math.multiply(-1, this.position);
+        // Initialize viewForward.
+        this.viewForward = math.zeros(this.dimN);
+        this.viewForward.set([0], 1.);
 
-        this.precisaUpdate = true
+        this.needsUpdate = true
 
         this.lookAtMatrix = undefined;
 
@@ -30,21 +28,16 @@ class ND_Camera{
         this.modelViewMatrix = undefined;
         this.projectionModelViewMatrix = undefined;
 
-        this.perspective = perspective;//Define o tipo de projeção usado
+        this.perspective = perspective; // Specifies the type of projection used (perspective or orthogonal).
 
-        //console.log("Criando matriz de projecao");
+        // Creating the projection matrix.
         this.updateProjectionMatrix();
-        //console.log("Matriz de projecao criada");
 
+        // Creating the "look at" matrix (updates the final projection-view matrix).
         this.lookAt(math.zeros(this.dimN), undefined, true);
-        
-        //this.updateViewMatrix();
-
-        //this.lookAt(math.zeros(math.zeros(N)));
-
     }
 
-    UpdatePos(){
+    UpdatePos() {
         let pos = Array(this.dimN).fill(1);
         /*
         for (let i=this.dimN-2; i >= 0; i--) {
@@ -52,211 +45,118 @@ class ND_Camera{
                 if this.esfericas>2*math.pi
                 this.esfericas[i] = ((this.esfericas[i]/math.pi)%2)*math.pi;
             } else {
-                
+
             }
         }
         */
-        for (let i=0; i <= this.dimN-2; i++) {
-            pos[this.dimN-i-1] *= math.sin(this.esfericas[i]);
-            for (let j=0; j < this.dimN-i-1; j++){
-                pos[j] *= math.cos(this.esfericas[i]);
+        for (let i = 0; i <= this.dimN - 2; i++) {
+            pos[this.dimN - i - 1] *= math.sin(this.spherical[i]);
+            for (let j = 0; j < this.dimN - i - 1; j++) {
+                pos[j] *= math.cos(this.spherical[i]);
             }
         }
-        this.position = math.multiply(math.matrix(pos), this.raio);
-        this.position = math.add(this.position, this.alvo);
+        this.position = math.multiply(math.matrix(pos), this.radius);
+        this.position = math.add(this.position, this.target);
     }
 
-    /*UpdatePos(uns){
-        console.log(this.raio);
-        let pos = uns;//math.matrix(Array.from({ length: this.dimN}, () => this.raio));
-        console.log(pos);
-        this.esfericas.forEach((coord, i) => {
-            console.log(pos);
-            pos[this.dimN-i-1] *= math.sin(coord);
-            for (let j=0; j < this.dimN-i-1; j++){
-                pos[j] *= math.cos(coord);
-            }
-        });
-        //Troca coords
-        console.log(pos);
-        this.position = pos;
-        
-    }*/
 
-    RotVecPos(x, y, theta){
-        //console.log(matrizRotacaoND(this.dimN, x, y, theta));
+    RotVecPos(x, y, theta) {
+        //console.log(ND_RotationMatrix(this.dimN, x, y, theta));
         //console.log(math.transpose([this.position]));
         console.log(this.position);
         //console.log(math.size(this.position));
         //console.log(math.size(math.transpose([this.position])));
-        this.position = math.transpose(math.multiply(matrizRotacaoND(this.dimN, x, y, theta), math.transpose(this.position)));
+        this.position = math.transpose(math.multiply(ND_RotationMatrix(this.dimN, x, y, theta), math.transpose(this.position)));
     }
 
-    updateFoV(){
-        //Para atualizar a distância da camera quando o FoV muda
-        //const CotFov = 1/math.tan(this.FoV*0.5*math.pi/180);
-        //this.raio = CotFov + this.raioObj + 1;// + this.tamAparente;
-        this.perspective = (this.FoV != 0);
-        //this.UpdatePos();
+    updateFov() {
+        this.perspective = (this.fov !== 0);
         this.updateProjectionMatrix();
         this.lookAt(math.zeros(this.dimN), undefined, true);
     }
 
-    updateProjectionMatrix(){
-        if (this.FoV == 0){
-            this.projectionMatrix = math.identity(this.dimN);
-        };
-        const CotFov = 1/math.tan(this.FoV*0.5*math.pi/180);
-        
-        this.projectionMatrix = math.multiply(CotFov, math.identity(this.dimN+1));
-        this.projectionMatrix.set([this.dimN-1, this.dimN-1], 1);
-        this.projectionMatrix.set([this.dimN, this.dimN-1], 1);
+    updateProjectionMatrix() {
+        // Attention: this.fov should not be 0.
+        const CotFov = 1 / math.tan(this.fov * 0.5 * math.pi / 180);
 
-        this.projectionMatrixResized = math.multiply(NDEscala(this.dimN, 1), this.projectionMatrix);
+        this.projectionMatrix = math.multiply(CotFov, math.identity(this.dimN + 1));
+        this.projectionMatrix.set([this.dimN - 1, this.dimN - 1], 1);
+        this.projectionMatrix.set([this.dimN, this.dimN - 1], 1);
+
+        this.projectionMatrixResized = math.multiply(ND_ScalingMatrix(this.dimN, 1.0), this.projectionMatrix);
     }
 
-    updateViewMatrix(){
-        this.modelViewMatrix = math.identity(this.dimN+1);
-        const indice = math.index(math.evaluate('0:n-1', { n:this.dimN }), math.evaluate('0:n-1', { n:this.dimN }));
+    updateViewMatrix() {
+        // Concatenates the "look at" matrix with the "translation" to the origin.
+        this.modelViewMatrix = math.identity(this.dimN + 1);
+        const indice = math.index(math.range(0, this.dimN), math.range(0, this.dimN));
         this.modelViewMatrix.subset(indice, this.lookAtMatrix);
-        const posNegativa = math.multiply(-1, this.position);
-        this.modelViewMatrix = math.multiply(this.modelViewMatrix, NDTranslacao(this.dimN, posNegativa));
+        const posNegativa = math.multiply(-1, this.target);
+        this.modelViewMatrix = math.multiply(this.modelViewMatrix, ND_TranslationMatrix(this.dimN, posNegativa));
+        // this.modelViewMatrix = math.identity(this.dimN+1);
     }
 
-    updateProjectionViewMatrix(){
-        if (this.perspective){
+    updateProjectionViewMatrix() {
+        if (this.perspective) {
             this.projectionModelViewMatrix = math.multiply(this.projectionMatrixResized, this.modelViewMatrix);
         } else {
             this.projectionModelViewMatrix = this.modelViewMatrix;
         }
+        // this.projectionModelViewMatrix = math.identity(this.dimN+1);
     }
 
-    lookAt(alvo = undefined, viewUps = undefined, recalcula = false){
-        if ( alvo === undefined ){
-            alvo = this.alvo;
-        }
-        //console.log(alvo);
-        //console.log(this.position);
-        //console.log("Entrou no LookAt");
-        let direcao = math.subtract(alvo, this.position);
-
-        //console.log("lookAt!");
-        if (math.norm(math.subtract(this.direcao, direcao)) < 1e-6 && !recalcula) {
-            return
-        }
-        //console.log("lookAt, diferente!");
-        
-        this.precisaUpdate = true
-        this.direcao = direcao
-        
-        let Ups = []
-        if (viewUps == undefined){
-            const scope = { n:this.dimN-1 }
-            const indice = math.index(math.evaluate('2:n', scope), math.evaluate('0:n', scope));
-            Ups =  math.identity(this.dimN).subset(indice);
-        } else {
-            Ups = viewUps;
+    lookAt(target = undefined, upMatrix = undefined, forceUpdate = false) {
+        // Define the origin as a target if it has not been specified.
+        if (target === undefined) {
+            target = this.target;
         }
 
-        //console.log("ViewUps Calculado");
+        // "Forward" = camera_position - camera_target.
+        // Here, viewForward is still not normalized.
+        let viewForward = math.subtract(this.position, target);
 
-        const comprimentoDirecao = math.norm(direcao);
-        if (comprimentoDirecao < 1e-6){
-            throw new Error('Alvo eh igual a posicao');
+        // Checking if viewForward has changed.
+        // this.viewForward is also not normalized.
+        if (math.norm(math.subtract(this.viewForward, viewForward)) < 1e-6 && !forceUpdate) {
+            return;
         }
-        direcao = math.divide(direcao, comprimentoDirecao);
 
-        //console.log(direcao);
-        //console.log(Ups);
-        /*console.log("aqui?");
-
-        console.log(math.transpose([direcao]));
-        console.log([direcao]);
-        console.log(Ups);
-        */
-        //gambiarra
-        //direcao = math.squeeze(direcao);
-
-        //console.log([direcao]);
-
-        //console.log(Ups)
-
-
-        let mat = math.concat(Ups, [direcao.toArray()], 0);
-
-        //console.log(mat);
-        //console.log("aqui2?");
-
-        //mat = math.concat(mat, [VetorOrtogonal(mat)], 0);
-        //let ortogonal = VetorOrtogonal(mat);
-        //console.log(mat);
-        //console.log("determinante");
-        /*
-        const determinante = math.det(math.concat(mat, [VetorOrtogonal(mat)], 0));
-        //console.log(determinante);
-        if (determinante == 0){
-            throw new Error("ViewUps e Vetor direcao sao linearmente dependentes");
+        // Checking if viewForward has a valid length.
+        const lengthForward = math.norm(viewForward);
+        if (lengthForward < 1e-6) {
+            throw new Error('Camera target is equal to camera position!');
         }
-        */
-        
-        //console.log("lookAtMat");
-        //console.log("inicio calculo lookAtMatrix");
-        
-        
-        let lookAtMat1 = math.zeros(this.dimN, this.dimN);
-        
-        //console.log(lookAtMat);
-        //console.log(direcao);
-        let indice = math.index(this.dimN-1, math.range(0, this.dimN));
-        lookAtMat1 = math.subset(lookAtMat1, indice, direcao);
-        //console.log(lookAtMat);
-        //console.log("inloop");
-        //Calculo base projetiva "LookAtMatrix"
-        
-        for (var i = 0; i < this.dimN-1; i++){
-            //console.log("dim", i);
-            //Reescrever com novo subset q aceita index vazio
-            if (i<this.dimN-2){
-                const subUps = math.subset(Ups, math.index(math.range(i, this.dimN-2), math.range(0, this.dimN)));
-                //console.log(subUps);
-                //console.log(math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
-                const subLookAt = math.subset(lookAtMat1, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
-                mat = math.concat(subUps, subLookAt, 0);
-            } else {
-                mat = math.subset(lookAtMat1, math.index(math.range(this.dimN-i-1, this.dimN), math.range(0, this.dimN)));
+
+        // Update this.viewForward.
+        this.needsUpdate = true;
+        this.viewForward = viewForward;
+
+        // Normalize viewForward.
+        viewForward = math.divide(viewForward, lengthForward);
+
+        // Create up matrix if necessary.
+        if (upMatrix === undefined) {
+            upMatrix = math.zeros(this.dimN - 2, this.dimN)
+            for (let i = 0; i < (this.dimN - 2); i++) {
+                upMatrix.set([this.dimN - 2 - 1 - i, this.dimN - 1 - i], 1);
             }
-            //console.log("inicio vetorOrtogonal");
-            const vetOrtogonal = VetorOrtogonal(mat);
-            //console.log("final vetorOrtogonal");
-            const vetOrtogonalnorm = math.divide(vetOrtogonal, math.norm(vetOrtogonal));
-            lookAtMat1 = math.subset(lookAtMat1, math.index(this.dimN-i-2, math.range(0, this.dimN)), vetOrtogonalnorm);
         }
-        
-        /*
-        let lookAtMat = math.identity(this.dimN, this.dimN);
 
-        let indice = math.index(math.range(0, this.dimN), 0);
-        lookAtMat = math.subset(lookAtMat, indice, direcao);
+        // Concatenate upMatrix and viewForward.
+        let mat = math.concat([viewForward.toArray()], upMatrix, 0);
 
-        console.log(lookAtMat);
+        // Compute vectors by performing cross-product and replacing progressively.
+        for (let i = 1; i < (this.dimN - 1); i++) {
+            const w = math.multiply(NormalizedCrossProduct(this.dimN, mat), ((((i - 1) % 2) === 0) ? -1. : 1.));
+            const index = math.index(i, math.range(0, this.dimN));
+            mat = mat.subset(index, w);
+        }
 
-        lookAtMat = math.qr(lookAtMat).Q;
+        // Compute the last vector and append at the end.
+        const w = math.multiply(NormalizedCrossProduct(this.dimN, mat), (((((this.dimN - 1) - 1) % 2) === 0) ? -1. : 1.));
+        mat = math.concat(mat, [w.toArray()], 0);
 
-        console.log(direcao);
-        console.log(math.subset(lookAtMat, indice));
-        //if (math.multiply(direcao, math.subset(lookAtMat, indice))<0){
-        //    lookAtMat = math.multiply(-1, lookAtMat);
-        //}
-
-        lookAtMat = inverteLinhasMat(math.transpose(lookAtMat), this.dimN);
-        */
-
-        //console.log("calculou lookAtMatrix");
-        
-        //console.log(lookAtMat1);
-        //console.log(lookAtMat);
-
-        this.lookAtMatrix = lookAtMat1;//math.identity(this.dimN);
+        this.lookAtMatrix = mat;
 
         this.updateViewMatrix();
 
@@ -264,56 +164,64 @@ class ND_Camera{
 
     }
 
-    getMatrixProjecao(){
+    getMatrixProjecao() {
         //return this.modelViewMatrix;
         return this.projectionModelViewMatrix;
     }
 }
 
-class ND_Cameras{
-    constructor(N){
+class ND_Cameras {
+    constructor(N) {
         this.dimN = N;
-        
+
         this.cameras = [];
-        for (let i=N; i>=4; i--){
-            //const pos = Array.from({ length: i-1 }, () => 0);
-            //pos[i-2] = 3;
-            //pos = [0, 0, ..., 0]
-            let camera = new ND_Camera(i, 3, (i==4));
-            //console.log(`criando camera ${camera.dimN}D`);
-            camera.lookAt(math.zeros(i));
+        if (N < 4) {
+            let camera = new ND_Camera(N, 3, false);
+            camera.lookAt(math.zeros(N));
             this.cameras.push(camera);
+        } else {
+            for (let i = N; i >= 4; i--) {
+                //const pos = Array.from({ length: i-1 }, () => 0);
+                //pos[i-2] = 3;
+                //pos = [0, 0, ..., 0]
+                let camera = new ND_Camera(i, 3, (i === 4));
+                //console.log(`criando camera ${camera.dimN}D`);
+                camera.lookAt(math.zeros(i));
+                this.cameras.push(camera);
+            }
         }
     }
 
-    lookAtOrigem(recalcula = false){
-        this.cameras.forEach((camera) => {camera.lookAt(undefined, undefined, recalcula)});
+    lookAtOrigin(forceUpdate = false) {
+        this.cameras.forEach((camera) => {
+            camera.lookAt(undefined, undefined, forceUpdate)
+        });
     }
 
-    centraPrimeira(alvo){
+    centralizeFirstCamera(target) {
         //Move a primeira camera e aponta ela na direção desejada
-        this.cameras[0].alvo = alvo;
+        this.cameras[0].target = target;
         this.cameras[0].UpdatePos();
         this.cameras[0].lookAt(undefined, undefined, true);
 
     }
 
-    projetaObjetos(ndObjs){
+    projectObjects(ndObjs) {
         //console.log(pnts);
         ///const size = math.size(pnts).valueOf();
         ///const cols = size[1];
-        
+
         for (const ndObj of ndObjs) {
-            //console.log(this.cameras.some(camera => camera.precisaUpdate));
-            if (this.cameras.some(camera => camera.precisaUpdate) || ndObj.precisaUpdate){
-                if ( ndObj.Mesh.visible && ndObj.geometria.vertices.length > 0 ) {
-                    let pnts = ndObj.geometria.vertices;
+            //console.log(this.cameras.some(camera => camera.needsUpdate));
+            if (this.cameras.some(camera => camera.needsUpdate) || ndObj.needsUpdate) {
+                if (ndObj.Mesh.visible && ndObj.geometry.vertices.length > 0) {
+                    let pnts = ndObj.geometry.vertices;
                     //let profundidades = ndObj.geometriaOriginal.vertices;//Armazenamos as posições nas dimensoes perdidas para o corte dimensional
-                    for (let camera of this.cameras){
+                    for (let camera of this.cameras) {
                         //console.log(`Projetando camera ${camera.dimN}D`);
                         //adiciona coordenadas homogenias
                         const size = math.size(pnts).valueOf();
-                        let pntsH = math.resize(pnts, [size[0], size[1]+1], 1);
+                        let pntsH = math.resize(pnts, [size[0], size[1] + 1], 1);
                         //console.log(math.transpose(pntsH));
                         //console.log(camera.getMatrixProjecao());
                         pntsH = math.transpose(math.multiply(camera.getMatrixProjecao(), math.transpose(pntsH)));
@@ -321,12 +229,16 @@ class ND_Cameras{
                         //profundidades = pntsH.toArray().map(vertice => vertice[camera.dimN]);
                         //profundidades = pntsHArray.map();
 
-                        pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN-1), vertice[camera.dimN]));
+                        if (camera.dimN > 3) {
+                            pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN - 1), vertice[camera.dimN]));
+                        } else {
+                            pnts = pntsH.toArray().map(vertice => math.divide(vertice.slice(0, camera.dimN), vertice[camera.dimN]));
+                        }
                         //console.log(pnts)
                         //console.log(projetados);
                         //console.log('projetou');
-                        
-                        //camera.precisaUpdate = false;
+
+                        //camera.needsUpdate = false;
                     }
                     //console.log("Alou!");
                     //console.log(pnts);
@@ -337,11 +249,11 @@ class ND_Cameras{
                 }
             }
             //console.log("Projetou!")
-        } 
-        this.cameras.forEach((camera) => camera.precisaUpdate=false);
-        
+        }
+        this.cameras.forEach((camera) => camera.needsUpdate = false);
+
         //else {
-          //  ndObj.updateVertices(projetados[0]);
+        //  ndObj.updateVertices(projetados[0]);
         //}
     }
 }

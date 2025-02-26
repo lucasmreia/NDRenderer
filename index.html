@@ -4,34 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ND Renderer</title>
-    <!--script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
-                "jsm/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
-                }
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
         }
-    </script-->
-    <!--"mathjs": "https://cdn.jsdelivr.net/npm/mathjs/lib/browser/math.js"-->
-</head>
-<body style="margin:0px; overflow:hidden">
-    <input id="fileInput" type="file" style="visibility:hidden; display:none;" />
-    <button id="button" style="visibility: hidden">Download Screenshot</button>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.1.1/math.min.js"></script>
-    <script src="src/lib_three/three.min.js"></script> <!-- Inclue o Three.js -->
-    <script src="src/lib_three/controls/OrbitControls.js"></script> <!-- Inclue o Orbitcontoler.js -->
-    <script src="src/lib_three/libs/stats.min.js"></script> <!-- Inclue o Stats.js -->
-    <script src="src/lib_three/libs/dat.gui.min.js"></script> <!-- Inclue o dat-gui.js -->
+        /* Center the progress indicator and style it */
+        #progress {
+            display: flex;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            color: #333;
+
+            /* Translucent background and outer glow */
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Create the spinner using a pseudo-element */
+        #progress::before {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 3px solid #ccc;
+            border-top: 3px solid #333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Define the keyframes for the spinning animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body style="margin:0; overflow:hidden">
+    <input id="fileInput" type="file" style="visibility:hidden; display:none;" />
+    <div id="progress">Progress: 0.00%</div>
+
+    <script src="src/lib/three/libs/math.min.js"></script> <!-- includes math.js -->
+    <script src="src/lib/three/three.min.js"></script> <!-- includes Three.js -->
+    <script src="src/lib/three/controls/OrbitControls.js"></script> <!-- includes Orbitcontoler.js -->
+    <script src="src/lib/three/libs/stats.min.js"></script> <!-- includes Stats.js -->
+    <script src="src/lib/three/libs/dat.gui.min.js"></script> <!-- includes dat-gui.js -->
     
-    <script src="src/lib/ND_Transforms.js"></script>
-    <script src="src/lib/FileReader.js"></script>
-    <script src="src/ND_Material.js"></script>
+    <script src="src/ND_Transforms.js"></script>
+    <script src="src/FileReader.js"></script>
     <script src="src/ND_Object.js"></script>
     <script src="src/ND_Corte.js"></script>
     <script src="src/ND_Cameras.js"></script>
-    <script src="src/MainCena.js"></script>
+    <script src="src/MainScene.js"></script>
     <script src="main.js"></script>
-    <!--script type="module" src="/src/main.jsx"></script-->
 </body>
 </html>
